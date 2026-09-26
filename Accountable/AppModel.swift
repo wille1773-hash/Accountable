@@ -15,15 +15,32 @@ final class AppModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in self?.authorizationStatus = status }
             .store(in: &cancellables)
+
+        // The monitor extension updates the shared file in the background (progress, time's up).
+        // Re-read it every few seconds while the app is open so the screen stays current.
+        Timer.publish(every: 3, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.poll() }
+            .store(in: &cancellables)
     }
 
     var isAuthorized: Bool { authorizationStatus == .approved }
 
     /// Re-reads the shared file, picking up anything the extensions changed while the app was closed.
     func refresh() {
+        SessionEngine.finishIfWindowPassed()
         state = SharedStore.load()
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         reassertLock()
+    }
+
+    /// Lighter than `refresh()`: just picks up changes from the extensions.
+    private func poll() {
+        SessionEngine.finishIfWindowPassed()
+        let latest = SharedStore.load()
+        if latest.session != state.session || latest.lockout != state.lockout || latest.days != state.days {
+            state = latest
+        }
     }
 
     /// Apps are locked whenever there's no session running. Re-applying the lock is harmless,
@@ -46,5 +63,18 @@ final class AppModel: ObservableObject {
         }
         reassertLock()
         Task { await Notifier.requestPermission() }
+    }
+
+    // MARK: Sessions
+
+    func startSession(minutes: Int) throws {
+        try SessionEngine.start(minutes: minutes)
+        refresh()
+    }
+
+    func endSessionEarly() {
+        guard let session = state.session else { return }
+        SessionEngine.finish(sessionID: session.id, reason: .userEnded)
+        refresh()
     }
 }
