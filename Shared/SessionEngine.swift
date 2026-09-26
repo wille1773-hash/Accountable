@@ -161,6 +161,11 @@ enum SessionEngine {
             let day = DayKey.string(for: session.startedAt)
             if reason == .limitReached {
                 state.days[day, default: DayStats()].limitsHit += 1
+                // Escalation counts limit hits on the calendar day the limit was hit,
+                // so it resets at midnight even if the session started yesterday.
+                let hitsToday = state.days[DayKey.string(for: now)]?.limitsHit ?? 0
+                let minutes = CooldownPolicy.minutes(forHitNumber: hitsToday, state: state)
+                state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * 60), minutes: minutes)
             } else {
                 state.days[day, default: DayStats()].kept += 1
             }
@@ -170,11 +175,12 @@ enum SessionEngine {
         Shielding.lock(state.selection)
         DeviceActivityCenter().stopMonitoring([.session(session.id)])
 
-        if reason == .limitReached {
+        if reason == .limitReached, let lockout = state.lockout {
+            let time = lockout.endsAt.formatted(date: .omitted, time: .shortened)
             Notifier.post(
                 id: "time-up",
                 title: "Time's up",
-                body: "That's the \(session.requestedMinutes) minutes you asked for. Your apps are locked again."
+                body: "That's the \(session.requestedMinutes) minutes you asked for. You can start another session at \(time)."
             )
         }
     }

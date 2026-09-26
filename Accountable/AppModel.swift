@@ -77,4 +77,10 @@ final class AppModel: ObservableObject {
         SessionEngine.finish(sessionID: session.id, reason: .userEnded)
         refresh()
     }
+
+    // MARK: Settings
+
+    func updateCooldown(_ settings: CooldownSettings) {
+        state = SharedStore.update { $0.cooldown = settings }
+    }
 }

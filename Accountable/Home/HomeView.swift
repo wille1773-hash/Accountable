@@ -3,7 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var model: AppModel
     @State private var askingHowLong = false
-    @State private var editingApps = false
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationStack {
@@ -16,13 +16,16 @@ struct HomeView: View {
             .background(Theme.background)
             .navigationTitle("Accountable")
             .toolbar {
-                Button("Apps") { editingApps = true }
+                Button { showingSettings = true } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("Settings")
             }
             .sheet(isPresented: $askingHowLong) {
                 HowLongSheet()
             }
-            .sheet(isPresented: $editingApps) {
-                AppPickerView(isEditing: true)
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
         }
     }
@@ -38,6 +41,8 @@ struct StatusCard: View {
             Card {
                 if let session = model.state.session {
                     sessionView(session, now: context.date)
+                } else if let lockout = model.state.lockout, lockout.endsAt > context.date {
+                    cooldownView(lockout, now: context.date)
                 } else {
                     lockedView
                 }
@@ -67,6 +72,30 @@ struct StatusCard: View {
                 .buttonStyle(.primary)
                 .padding(.top, 8)
         }
+    }
+
+    private func cooldownView(_ lockout: Lockout, now: Date) -> some View {
+        let remaining = Int(lockout.endsAt.timeIntervalSince(now).rounded(.up))
+        return VStack(alignment: .leading, spacing: 8) {
+            Label("Taking a breather", systemImage: "hourglass")
+                .font(.headline)
+            Text(Self.clock(remaining))
+                .font(Theme.bigNumber(72))
+            Text("You used the time you asked for. You can start again at \(lockout.endsAt.formatted(date: .omitted, time: .shortened)).")
+                .foregroundStyle(Theme.secondaryText)
+            if CooldownPolicy.isEscalating(model.state) {
+                Text("Hit the limit again today and the next break is \(CooldownPolicy.nextMinutes(state: model.state, now: now)) min.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+        }
+    }
+
+    /// 425 -> "7:05", 3725 -> "1:02:05"
+    static func clock(_ seconds: Int) -> String {
+        let s = max(0, seconds)
+        let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
     }
 
     private var lockedView: some View {
