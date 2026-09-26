@@ -10,6 +10,8 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     StatusCard(askingHowLong: $askingHowLong)
+                    TodayCard()
+                    StreakCard()
                 }
                 .padding(20)
             }
@@ -107,6 +109,61 @@ struct StatusCard: View {
             Button("How long do you want?") { askingHowLong = true }
                 .buttonStyle(.primary)
                 .padding(.top, 8)
+        }
+    }
+}
+
+/// Today's promises: made vs. kept.
+struct TodayCard: View {
+    @EnvironmentObject private var model: AppModel
+
+    var body: some View {
+        let today = model.state.days[DayKey.string(for: .now)] ?? DayStats()
+        let inProgress = model.state.session.map { DayKey.string(for: $0.startedAt) == DayKey.string(for: .now) } ?? false
+        Card {
+            Text("Today")
+                .font(.headline)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(today.kept)")
+                    .font(Theme.bigNumber(48))
+                Text("of \(today.made) \(today.made == 1 ? "promise" : "promises") kept")
+                    .font(.title3)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            if today.made == 0 {
+                Text("No sessions yet today.")
+                    .foregroundStyle(Theme.secondaryText)
+            } else if inProgress {
+                Text("One in progress.")
+                    .foregroundStyle(Theme.secondaryText)
+            } else if today.limitsHit > 0 {
+                Text("Ran out of time \(today.limitsHit) \(today.limitsHit == 1 ? "time" : "times").")
+                    .foregroundStyle(Theme.secondaryText)
+            }
+        }
+    }
+}
+
+/// Days in a row with every promise kept.
+struct StreakCard: View {
+    @EnvironmentObject private var model: AppModel
+
+    var body: some View {
+        let days = Streak.days(in: model.state)
+        Card {
+            Text("Streak")
+                .font(.headline)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(days)")
+                    .font(Theme.bigNumber(48))
+                Text(days == 1 ? "day" : "days")
+                    .font(.title3)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            Text(days == 0
+                 ? "Keep every promise today to start one."
+                 : "In a row with every promise kept.")
+                .foregroundStyle(Theme.secondaryText)
         }
     }
 }
