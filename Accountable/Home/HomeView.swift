@@ -9,9 +9,9 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Card {
-                        Text("You're set up")
+                        Label("Locked", systemImage: "lock")
                             .font(.headline)
-                        Text("Holding you to \(model.state.selection.summary).")
+                        Text("Holding you to \(model.state.selection.summary). Try opening one: you should see the Accountable lock screen.")
                             .foregroundStyle(Theme.secondaryText)
                     }
                 }

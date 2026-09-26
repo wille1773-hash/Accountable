@@ -23,6 +23,14 @@ final class AppModel: ObservableObject {
     func refresh() {
         state = SharedStore.load()
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+        reassertLock()
+    }
+
+    /// Apps are locked whenever there's no session running. Re-applying the lock is harmless,
+    /// and it repairs things if a shield was lost (for example after changing the app selection).
+    private func reassertLock() {
+        guard isAuthorized, state.hasCompletedSetup, state.session == nil else { return }
+        Shielding.lock(state.selection)
     }
 
     func requestAuthorization() async throws {
@@ -36,5 +44,7 @@ final class AppModel: ObservableObject {
             state.hasCompletedSetup = true
             if state.firstDay == nil { state.firstDay = DayKey.string(for: .now) }
         }
+        reassertLock()
+        Task { await Notifier.requestPermission() }
     }
 }
