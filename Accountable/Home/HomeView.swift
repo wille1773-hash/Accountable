@@ -4,6 +4,7 @@ struct HomeView: View {
     @EnvironmentObject private var model: AppModel
     @State private var askingHowLong = false
     @State private var showingSettings = false
+    @State private var showingUnwind = false
 
     var body: some View {
         NavigationStack {
@@ -11,6 +12,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     header
                     StatusHero(askingHowLong: $askingHowLong)
+                    UnwindCard(showing: $showingUnwind)
                     HStack(alignment: .top, spacing: 14) {
                         TodayCard()
                         StreakCard()
@@ -33,6 +35,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $showingUnwind) {
+                UnwindView()
             }
         }
     }
@@ -217,6 +222,43 @@ private struct CooldownStatus: View {
         let s = max(0, seconds)
         let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
         return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
+    }
+}
+
+// MARK: - Unwind
+
+/// Shortcut to the calm tools. Worded for the moment: a pull to scroll, or waiting out a break.
+struct UnwindCard: View {
+    @EnvironmentObject private var model: AppModel
+    @Binding var showing: Bool
+
+    var body: some View {
+        let onBreak = (model.state.lockout?.endsAt ?? .distantPast) > .now
+        Button { showing = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "wind")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 44, height: 44)
+                    .background(Theme.accentSoft, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(onBreak ? "While you wait" : "Feeling the pull?")
+                        .font(.headline)
+                        .foregroundStyle(Theme.ink)
+                    Text("Breathe, ground yourself, or find something else to do.")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondaryText)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            .padding(16)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 

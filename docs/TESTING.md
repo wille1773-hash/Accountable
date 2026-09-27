@@ -15,7 +15,8 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 
 ### 1. Intro, authorization, app picker
 - [ ] First launch shows the intro: welcome, three research cards, your numbers, your life in years, how it works.
-- [ ] Moving the slider and age updates the life projection.
+- [ ] The life page opens at your current daily time (0 years back). Dragging the slider left turns dots light green and counts up the years won back.
+- [ ] Check the numbers: 2 hr 20 min at age 20 should show 5.8 years ahead and about 249 days so far.
 - [ ] **Turn on Screen Time access** shows Apple's prompt and Face ID.
 - [ ] Choose 2–3 apps (e.g. TikTok, Instagram). The card lists them. Tap **Continue**.
 - [ ] Force-quit and reopen: you land on the home screen with the same apps.
@@ -44,6 +45,10 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 - [ ] Keep a few promises (tap **I'm done** after at least a minute): Buddy hops and grows back.
 - [ ] End one session early and let one run out: Today shows "1 of 2 promises kept".
 - [ ] Streak shows 0 after a limit hit today; on a clean day it counts up from setup day.
+
+### Unwind
+- [ ] Home shows "Feeling the pull?" (or "While you wait" during a break). It opens breathing, grounding and ideas.
+- [ ] Sigh it out: the circle grows on the two inhales and shrinks on the long exhale, the label stays readable, and the screen doesn't sleep.
 
 ### 6. Study mode
 - [ ] Before enrolling, Settings has no Study section, and nothing is logged.

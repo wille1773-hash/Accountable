@@ -319,18 +319,19 @@ struct YourNumbersPage: View {
 
 struct YourLifePage: View {
     var math: LifeMath
-    /// The "what if" daily time the user is trying out, in minutes.
+    /// The "what if" daily time the user is trying out, in minutes. Starts at their real number,
+    /// so the first thing they see is where they're headed if nothing changes.
     @State private var goalMinutes: Int
     @State private var revealed = 0
 
     init(math: LifeMath) {
         self.math = math
-        // Start the "what if" at 30 minutes a day, the level from the UPenn study.
-        _goalMinutes = State(initialValue: min(30, math.dailyMinutes))
+        _goalMinutes = State(initialValue: math.dailyMinutes)
     }
 
     private var goal: LifeMath { LifeMath(dailyMinutes: goalMinutes, age: math.age) }
     private var yearsBack: Double { math.yearsAhead - goal.yearsAhead }
+    private var cuttingBack: Bool { goalMinutes < math.dailyMinutes }
 
     var body: some View {
         ScrollView {
@@ -349,7 +350,7 @@ struct YourLifePage: View {
                 }
 
                 Card(padding: 18) {
-                    FutureGrid(yearsLeft: math.yearsLeft,
+                    FutureGrid(yearsLeft: math.wholeYearsLeft,
                                socialYears: goal.yearsAhead,
                                wonBackYears: yearsBack,
                                revealed: revealed)
@@ -358,15 +359,16 @@ struct YourLifePage: View {
                         legend(fill: Theme.accentSoft, stroke: Theme.accent, "Won back")
                         legend(stroke: Theme.hairline, "Yours")
                     }
-                    Text("Each dot is one of your \(math.yearsLeft) years to \(LifeMath.lifeExpectancy).")
+                    Text("One dot per year. At \(math.age), the average person has about \(Int(math.yearsLeft.rounded())) years left.")
                         .font(.caption)
                         .foregroundStyle(Theme.secondaryText)
                 }
 
                 Card(padding: 18) {
-                    Text("What if you cut back to")
+                    Text(cuttingBack ? "If you cut back to" : "Drag to see what cutting back gives you")
                         .foregroundStyle(Theme.secondaryText)
-                    Text("\(LifeMath.format(minutes: goalMinutes)) a day?")
+                        .animation(nil, value: cuttingBack)
+                    Text("\(LifeMath.format(minutes: goalMinutes)) a day")
                         .font(Theme.title(24))
                         .foregroundStyle(Theme.ink)
                         .contentTransition(.numericText())
@@ -380,7 +382,7 @@ struct YourLifePage: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("+\(LifeMath.format(years: yearsBack))")
                             .font(Theme.bigNumber(34))
-                            .foregroundStyle(Theme.accent)
+                            .foregroundStyle(cuttingBack ? Theme.accent : Theme.secondaryText)
                             .contentTransition(.numericText())
                             .animation(.snappy, value: goalMinutes)
                         Text("years back")
@@ -396,16 +398,17 @@ struct YourLifePage: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text("Assumes the same time every day, starting at \(LifeMath.startAge), and living to \(LifeMath.lifeExpectancy), the US average (CDC, 2024).")
+                Text("How this is worked out: your daily time is \(Int((math.shareOfTime * 100).rounded()))% of every 24 hours, applied to the years the average person your age has left (\(LifeMath.source)). \"So far\" assumes the same time every day since \(LifeMath.startAge).")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondaryText.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
         }
         .task {
             // Fill the grid a few dots at a time.
-            for step in 1...max(1, math.yearsLeft) {
+            for step in 1...max(1, math.wholeYearsLeft) {
                 try? await Task.sleep(for: .milliseconds(18))
                 revealed = step
             }
@@ -420,8 +423,9 @@ struct YourLifePage: View {
     }
 }
 
-/// One dot per year you have left. Solid green: years social media takes at the "what if" pace.
-/// Light green: years won back by cutting down. Open: the rest.
+/// One dot per year you have left, filled from the end of life backwards.
+/// Solid green: years social media takes at the "what if" pace. Light green: years won back.
+/// A partly filled dot shows a fraction of a year, so 5.8 years looks like 5.8, not 6.
 struct FutureGrid: View {
     var yearsLeft: Int
     var socialYears: Double
@@ -431,26 +435,41 @@ struct FutureGrid: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 15)
 
     var body: some View {
-        let social = Int(socialYears.rounded())
-        let wonBack = Int((socialYears + wonBackYears).rounded()) - social
-
         LazyVGrid(columns: columns, spacing: 5) {
             ForEach(0..<yearsLeft, id: \.self) { index in
-                // Fill from the end of life backwards, so the taken years sit together.
-                let fromEnd = yearsLeft - 1 - index
-                let kind: Int = fromEnd < social ? 2 : (fromEnd < social + wonBack ? 1 : 0)
-                Circle()
-                    .fill(kind == 2 ? Theme.accent : kind == 1 ? Theme.accentSoft : .clear)
-                    .overlay(Circle().stroke(kind == 1 ? Theme.accent : kind == 0 ? Theme.hairline : .clear, lineWidth: 1.5))
-                    .aspectRatio(1, contentMode: .fit)
+                let fromEnd = Double(yearsLeft - 1 - index)
+                // How much of this year goes to each kind, 0...1.
+                let social = min(1, max(0, socialYears - fromEnd))
+                let won = min(1 - social, max(0, socialYears + wonBackYears - fromEnd) - social)
+                YearDot(social: social, wonBack: won)
                     .scaleEffect(index < revealed ? 1 : 0.2)
                     .opacity(index < revealed ? 1 : 0)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.7), value: kind)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: revealed)
             }
         }
+        .animation(.easeOut(duration: 0.25), value: socialYears)
         .accessibilityElement()
-        .accessibilityLabel("\(yearsLeft) dots, one per year left. \(social) go to social media, \(wonBack) won back.")
+        .accessibilityLabel("\(yearsLeft) dots, one per year left. \(LifeMath.format(years: socialYears)) years go to social media, \(LifeMath.format(years: wonBackYears)) won back.")
+    }
+}
+
+/// A dot filled from the bottom: solid for social media, light for won back, empty for yours.
+private struct YearDot: View {
+    var social: Double
+    var wonBack: Double
+
+    var body: some View {
+        GeometryReader { geo in
+            let h = geo.size.height
+            ZStack(alignment: .bottom) {
+                Rectangle().fill(Theme.accentSoft).frame(height: h * (social + wonBack))
+                Rectangle().fill(Theme.accent).frame(height: h * social)
+            }
+            .frame(width: geo.size.width, height: h, alignment: .bottom)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(wonBack > 0 ? Theme.accent : (social > 0.99 ? .clear : Theme.hairline), lineWidth: 1.2))
+        }
+        .aspectRatio(1, contentMode: .fit)
     }
 }
 
@@ -466,7 +485,7 @@ struct HowItWorksPage: View {
                     .foregroundStyle(Theme.ink)
                 step(1, "Pick the apps that pull you in.", "They stay locked by default.")
                 step(2, "Say how long, every time.", "5 minutes? 20? You choose before you open anything.")
-                step(3, "When time's up, they lock again.", "Run out of time and you take a short break before the next session.")
+                step(3, "When time's up, they lock again.", "Run out of time and you take a short break. Unwind has breathing and ideas to help you through it.")
                 step(4, "Meet Buddy.", "Keep your promises and Buddy thrives. Break them and Buddy gets smaller and sadder. Only kept promises bring Buddy back.")
             }
             .padding(.horizontal, 24)
