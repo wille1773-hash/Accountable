@@ -4,7 +4,7 @@ An iOS app that holds you to the social media time limits you set for yourself.
 
 Instead of a fixed daily cap, Accountable asks one question each time you want to use a distracting app: **"How long do you want?"** It unlocks your chosen apps for exactly that long, then locks them again. If you keep coming back after hitting your limit, you wait longer before you can start another session.
 
-> **Status:** In active development. Features below describe the planned v1; see [Roadmap](#roadmap) for progress.
+> **Status:** v1 code complete, not yet tested on a device. See [Roadmap](#roadmap).
 
 ## How it works
 
@@ -72,15 +72,20 @@ State is shared between the app and extensions through an App Group (`group.com.
 3. For each of the four targets, open **Signing & Capabilities**, select your development team, and confirm that **Family Controls** and the App Group are enabled.
 4. Connect your iPhone, enable Developer Mode (Settings → Privacy & Security → Developer Mode), and run the `Accountable` scheme.
 
+A paid Apple Developer Program team is required: free Personal Teams can't use Family Controls on a device. See [docs/TESTING.md](docs/TESTING.md) for a step-by-step test checklist.
+
 ## Roadmap
 
-- [ ] 1. Project setup, App Group, extension targets, Screen Time authorization, app picker
-- [ ] 2. Default shielding of selected apps and custom shield screen
-- [ ] 3. "How long?" flow: unlock, track usage, re-lock at the limit
-- [ ] 4. Cooldowns with flat and escalating modes
-- [ ] 5. Home screen stats and streak
-- [ ] 6. Study mode: consent, participant ID, group assignment, event logging, CSV export
-- [ ] 7. Edge cases: restart mid-session, midnight rollover, revoked permission, changed app selection
+All milestones are written and build cleanly. None has been tested on a device yet; see [docs/TESTING.md](docs/TESTING.md).
+
+- [x] 1. Project setup, App Group, extension targets, Screen Time authorization, app picker
+- [x] 2. Default shielding of selected apps and custom shield screen
+- [x] 3. "How long?" flow: unlock, track usage, re-lock at the limit
+- [x] 4. Cooldowns with flat and escalating modes
+- [x] 5. Home screen stats and streak
+- [x] 6. Study mode: consent, participant ID, group assignment, event logging, CSV export
+- [x] 7. Edge cases: restart mid-session, midnight rollover, revoked permission, changed app selection
+- [ ] On-device testing
 
 ## Author
 
