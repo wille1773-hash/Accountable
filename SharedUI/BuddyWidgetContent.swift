@@ -25,14 +25,20 @@ struct BuddyEntry {
 }
 
 /// One frame of Buddy's widget animation.
+///
+/// iOS may show widget frames as still pictures, about one a second, without animating between
+/// them. So every frame is drawn as a readable pose on its own, like stop-motion: in the air
+/// (stretched, leaning, speed lines, a small shadow below) or just landed (squashed, dust puffs).
 struct BuddyPose: Equatable {
     /// Across the available space, 0 (left) to 1 (right).
     var x = 0.5
-    /// Height of a hop, 0 (on the ground) to 1 (top of the hop).
+    /// Height off the ground, 0 (standing) to 1 (top of a full hop).
     var lift = 0.0
+    /// Direction of travel: -1 left, 1 right, 0 standing still. Sets the lean and speed lines.
+    var dir = 0
+    /// Just touched down: squash and dust puffs.
+    var landing = false
     var eyesClosed = false
-    /// Slight lean in degrees, into the direction of travel.
-    var tilt = 0.0
 }
 
 enum WidgetSizeClass { case small, medium, large }
@@ -69,23 +75,68 @@ struct BuddyWidgetContent: View {
         }
     }
 
-    private func tappableBuddy(size: CGFloat) -> some View {
-        wrapBuddy(AnyView(Buddy(mood: mood, size: size, health: entry.health, eyesClosed: entry.pose.eyesClosed)))
+    private func tappableBuddy(size: CGFloat, eyesClosed: Bool = false) -> some View {
+        wrapBuddy(AnyView(Buddy(mood: mood, size: size, health: entry.health, eyesClosed: eyesClosed)
+            .frame(maxHeight: .infinity, alignment: .bottom)))
     }
 
-    /// Buddy placed in `area`, standing on its bottom edge, hopping `hop` points high at the top of a jump.
-    /// Buddy's frame is bottom-aligned, so the frame's bottom is where the feet are.
+    /// Buddy in `area`, standing on its bottom edge, hopping up to `hop` points high.
     private func roamingBuddy(size: CGFloat, in area: CGSize, hop: CGFloat) -> some View {
         let frameW = size * 1.3, frameH = size * 1.55
         let usable = max(0, area.width - frameW)
         let pose = entry.pose
-        return tappableBuddy(size: size)
-            .frame(width: frameW, height: frameH, alignment: .bottom)
-            .rotationEffect(.degrees(pose.tilt), anchor: .bottom)
-            .position(x: frameW / 2 + usable * pose.x,
-                      y: area.height - frameH / 2 - hop * pose.lift)
-            // The spring between frames is what makes it read as a hop rather than a jump cut.
-            .animation(.spring(response: 0.42, dampingFraction: 0.62), value: pose)
+        let cx = frameW / 2 + usable * pose.x
+        let groundY = area.height - 2
+        let lift = hop * pose.lift
+        let airborne = pose.lift > 0.05
+        let dir = CGFloat(pose.dir)
+
+        return ZStack {
+            // Shadow on the ground: smaller and fainter the higher Buddy is.
+            Ellipse()
+                .fill(Theme.ink.opacity(0.10 - 0.05 * pose.lift))
+                .frame(width: size * (0.8 - 0.3 * pose.lift), height: size * 0.12)
+                .position(x: cx, y: groundY - 1)
+
+            if airborne && pose.dir != 0 {
+                // Speed lines trailing behind.
+                VStack(alignment: dir > 0 ? .trailing : .leading, spacing: size * 0.09) {
+                    Capsule().frame(width: size * 0.28, height: 2.5)
+                    Capsule().frame(width: size * 0.4, height: 2.5)
+                    Capsule().frame(width: size * 0.22, height: 2.5)
+                }
+                .foregroundStyle(Theme.secondaryText.opacity(0.45))
+                .position(x: cx - dir * size * 0.85, y: groundY - lift - size * 0.45)
+            }
+
+            if pose.landing {
+                // Little dust puffs at the feet.
+                HStack(spacing: size * 0.95) {
+                    puff(size); puff(size)
+                }
+                .position(x: cx, y: groundY - size * 0.06)
+            }
+
+            tappableBuddy(size: size, eyesClosed: pose.eyesClosed)
+                .frame(width: frameW, height: frameH)
+                // Stretch on the way up, squash on landing.
+                .scaleEffect(x: airborne ? 0.94 : (pose.landing ? 1.08 : 1),
+                             y: airborne ? 1.07 : (pose.landing ? 0.9 : 1),
+                             anchor: .bottom)
+                .rotationEffect(.degrees(airborne ? Double(dir) * 9 : 0), anchor: .bottom)
+                .position(x: cx, y: groundY - frameH / 2 - lift)
+        }
+        .frame(width: area.width, height: area.height)
+        // On iOS versions that animate between widget frames, this smooths the steps.
+        .animation(.spring(duration: 0.5, bounce: 0.3), value: pose)
+    }
+
+    private func puff(_ size: CGFloat) -> some View {
+        HStack(alignment: .bottom, spacing: 2) {
+            Circle().frame(width: size * 0.09, height: size * 0.09)
+            Circle().frame(width: size * 0.13, height: size * 0.13)
+        }
+        .foregroundStyle(Theme.hairline)
     }
 
     /// Small: Buddy hops around the space above the status line.

@@ -73,7 +73,7 @@ Swift and SwiftUI. No third-party packages.
 
 - Screen Time schedules must be at least 15 minutes, so a session's limit is a usage threshold inside a longer window. Short sessions and breaks still work.
 - Opening Accountable straight from the lock screen needs iOS 26.5 or later; earlier versions get a notification instead.
-- Widgets can't run their own animations. Buddy's hops and blinks are planned ahead as timed frames, about one per second, and iOS animates between them.
+- Widgets can't run their own animations, and in testing iOS showed widget frames as still pictures about once a second. So Buddy moves like stop-motion: short bouncy hops, each frame a clear pose (in the air with speed lines and a shrinking shadow, or landing with a squash and dust puffs). A few minutes of movement are planned after each refresh; iOS pre-draws every frame, so longer plans made it fall back to a placeholder.
 - Screen Time doesn't work in the iOS Simulator. There the app runs a **demo mode** with pretend apps and a fast clock (1 minute = 2 seconds), so every screen can be tried.
 
 ## Running it

@@ -111,6 +111,10 @@ struct Buddy: View {
     private func eye(left: Bool) -> some View {
         let eyeW = w * 0.1
         switch mood {
+        case .happy where eyesClosed:
+            Capsule()
+                .fill(featureColor)
+                .frame(width: eyeW * 1.4, height: w * 0.04)
         case .happy:
             HappyEye()
                 .stroke(featureColor, style: StrokeStyle(lineWidth: w * 0.045, lineCap: .round))

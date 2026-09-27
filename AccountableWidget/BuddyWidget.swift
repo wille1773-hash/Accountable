@@ -40,8 +40,11 @@ struct HopIntent: AppIntent {
 // MARK: - Timeline
 
 struct BuddyProvider: TimelineProvider {
-    /// How far ahead to plan Buddy's frames. At the end, iOS asks for a new plan.
-    static let planLength: TimeInterval = 20 * 60
+    /// How long Buddy moves around after each refresh. iOS pre-draws every frame, so this stays short:
+    /// 20 minutes of frames (about 1,000) took iOS so long it showed the placeholder instead.
+    static let moveLength: TimeInterval = 3 * 60
+    /// When to ask for a fresh plan. Between the end of the moves and this, Buddy rests in place.
+    static let refreshAfter: TimeInterval = 15 * 60
 
     func placeholder(in context: Context) -> BuddyEntry { .preview }
 
@@ -53,13 +56,13 @@ struct BuddyProvider: TimelineProvider {
         let now = Date.now
         let state = SharedStore.load()
         let onBreak = (state.lockout?.endsAt ?? .distantPast) > now
-        var end = now.addingTimeInterval(Self.planLength)
+        var end = now.addingTimeInterval(Self.refreshAfter)
         // Replan right when a break ends, so Buddy wakes up and the countdown doesn't sit at zero.
         if onBreak, let breakEnd = state.lockout?.endsAt, breakEnd < end { end = breakEnd }
 
         let frames = BuddyChoreography.frames(
             from: now,
-            duration: end.timeIntervalSince(now),
+            duration: min(Self.moveLength, end.timeIntervalSince(now)),
             energy: BuddyChoreography.energy(health: state.buddyHealth, onBreak: onBreak),
             startX: Double(state.widgetHops % 5) / 4,
             seed: UInt64(now.timeIntervalSince1970) &+ UInt64(state.widgetHops)

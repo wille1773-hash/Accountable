@@ -7,9 +7,10 @@ import Foundation
 /// minutes up front: hop to a new spot, look around, blink, hop again. How lively Buddy is depends
 /// on how you're doing: a thriving Buddy hops often, a low Buddy mostly shuffles, a dozing Buddy stays put.
 ///
-/// iOS only reliably shows widget frames at least a second apart (tested: frames 0.25 s apart were
-/// dropped, 1 s apart were shown). So every frame lands on a whole second: a hop spends one second in
-/// the air and lands with a springy bounce, and a blink is a slow, content one-second blink.
+/// Tested on the Home Screen: iOS shows widget frames about once a second (closer ones are dropped)
+/// and may not animate between them at all. So Buddy moves like stop-motion: small hops, one pose
+/// per second (in the air, then landed), so each change is a short, readable step rather than a jump
+/// across the widget.
 enum BuddyChoreography {
     enum Energy {
         case lively, calm, low, dozing
@@ -33,75 +34,89 @@ enum BuddyChoreography {
     /// so a widget reload doesn't make Buddy jump somewhere random.
     static func frames(from start: Date, duration: TimeInterval, energy: Energy, startX: Double = 0.5, seed: UInt64) -> [Frame] {
         var rng = SeededGenerator(seed: seed)
-        var frames = [Frame(date: start, pose: BuddyPose(x: startX))]
-        var x = startX
-        var t = 1.0  // first move a second after the widget appears, so tapping Buddy gets a quick reaction
+        var pose = BuddyPose(x: startX)
+        var frames = [Frame(date: start, pose: pose)]
         var lastSecond = 0
 
-        /// Adds a frame on the next free whole second at or after `offset`.
-        @discardableResult
-        func add(_ offset: TimeInterval, _ pose: BuddyPose) -> Int {
-            let second = max(lastSecond + 1, Int(offset.rounded(.up)))
-            guard Double(second) < duration else { return second }
+        /// Shows `pose` on the next free second at or after `offset` (at least `gap` after the last frame).
+        func add(after gap: Int = 1, at offset: Double? = nil) {
+            var second = lastSecond + gap
+            if let offset { second = max(second, Int(offset.rounded(.up))) }
+            // Always move the clock forward, even past the end, so the planning loop finishes.
+            defer { lastSecond = second }
+            guard Double(second) < duration else { return }
             frames.append(Frame(date: start.addingTimeInterval(Double(second)), pose: pose))
-            lastSecond = second
-            return second
         }
 
-        func blink(at offset: TimeInterval) {
-            // Only blink if there's room to open the eyes again before the plan ends.
-            guard Double(max(lastSecond + 1, Int(offset.rounded(.up))) + 1) < duration else { return }
-            let closed = add(offset, BuddyPose(x: x, eyesClosed: true))
-            add(Double(closed + 1), BuddyPose(x: x))
+        /// Bounces over to `target` in small hops: up, down, up, down, then a settle.
+        func travel(to target: Double, stepSize: Double, height: Double) {
+            let dir = target > pose.x ? 1 : -1
+            while abs(target - pose.x) > 0.02 {
+                let step = min(stepSize, abs(target - pose.x))
+                // Up: halfway through the step, in the air.
+                pose = BuddyPose(x: pose.x + Double(dir) * step / 2, lift: height, dir: dir)
+                add()
+                // Down: lands the rest of the way.
+                pose = BuddyPose(x: pose.x + Double(dir) * step / 2, lift: 0, dir: dir, landing: height > 0.1)
+                add()
+            }
+            pose = BuddyPose(x: pose.x)
+            add()
         }
 
-        func hop(to newX: Double, at offset: TimeInterval, height: Double) {
-            let lean = newX > x ? 7.0 : -7.0
-            let up = add(offset, BuddyPose(x: (x + newX) / 2, lift: height, tilt: lean))
-            add(Double(up + 1), BuddyPose(x: newX, lift: 0, tilt: 0))
-            x = newX
+        func blink() {
+            pose.eyesClosed = true
+            add()
+            pose.eyesClosed = false
+            add()
         }
 
-        func pickSpot(minDistance: Double) -> Double {
+        func pickTarget(minDistance: Double) -> Double {
             var candidate = Double.random(in: 0...1, using: &rng)
-            for _ in 0..<8 where abs(candidate - x) < minDistance {
+            for _ in 0..<8 where abs(candidate - pose.x) < minDistance {
                 candidate = Double.random(in: 0...1, using: &rng)
             }
             return candidate
         }
 
-        // Leave a few seconds at the end so every hop lands and every blink reopens.
-        while t < duration - 5 {
+        // Leave room at the end so a walk never stops mid-air.
+        while Double(lastSecond) < duration - 14 {
             switch energy {
             case .lively:
-                hop(to: pickSpot(minDistance: 0.3), at: t, height: 1)
-                // Sometimes a second, smaller hop right after.
-                if Double.random(in: 0...1, using: &rng) < 0.35 {
-                    hop(to: min(1, max(0, x + Double.random(in: -0.25...0.25, using: &rng))), at: t + 2, height: 0.55)
+                travel(to: pickTarget(minDistance: 0.35), stepSize: 0.16, height: 1)
+                if Bool.random(using: &rng) {
+                    // A happy hop on the spot.
+                    pose = BuddyPose(x: pose.x, lift: 0.8); add()
+                    pose = BuddyPose(x: pose.x, landing: true); add()
+                    pose = BuddyPose(x: pose.x); add()
                 }
-                blink(at: t + Double.random(in: 2.2...3.5, using: &rng))
-                t += Double.random(in: 4.5...7.5, using: &rng)
+                add(after: Int.random(in: 1...2, using: &rng))
+                blink()
+                add(after: Int.random(in: 1...3, using: &rng))
 
             case .calm:
-                hop(to: pickSpot(minDistance: 0.25), at: t, height: 0.75)
-                blink(at: t + Double.random(in: 3...5, using: &rng))
-                t += Double.random(in: 8...13, using: &rng)
+                travel(to: pickTarget(minDistance: 0.25), stepSize: 0.12, height: 0.6)
+                add(after: Int.random(in: 2...4, using: &rng))
+                blink()
+                add(after: Int.random(in: 3...6, using: &rng))
 
             case .low:
-                // No hops: a slow shuffle a little way over, and a blink.
-                let newX = min(1, max(0, x + Double.random(in: -0.2...0.2, using: &rng)))
-                add(t, BuddyPose(x: newX))
-                x = newX
-                blink(at: t + Double.random(in: 4...7, using: &rng))
-                t += Double.random(in: 14...22, using: &rng)
+                // A slow shuffle, no hopping.
+                let target = min(1, max(0, pose.x + Double.random(in: -0.25...0.25, using: &rng)))
+                travel(to: target, stepSize: 0.07, height: 0)
+                add(after: Int.random(in: 4...7, using: &rng))
+                blink()
+                add(after: Int.random(in: 6...10, using: &rng))
 
             case .dozing:
-                // Stays put; the snoozing face does the work. An occasional small shift.
-                let newX = min(1, max(0, x + Double.random(in: -0.08...0.08, using: &rng)))
-                add(t, BuddyPose(x: newX))
-                x = newX
-                t += Double.random(in: 25...40, using: &rng)
+                // Stays put and sleeps; the dozing face does the work.
+                add(after: 30)
             }
+        }
+        // Make sure the plan ends standing, eyes open.
+        if var last = frames.popLast() {
+            last.pose = BuddyPose(x: last.pose.x)
+            frames.append(last)
         }
         return frames
     }
