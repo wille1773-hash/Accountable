@@ -53,6 +53,14 @@ enum SessionEngine {
     }
 
     enum EndReason: String {
+        var logDetail: String {
+            switch self {
+            case .limitReached: "limit_reached"
+            case .windowEnded: "window_closed"
+            case .userEnded: "ended_by_user"
+            }
+        }
+
         /// The requested time was used up. Counts as a broken promise.
         case limitReached
         /// The backstop window closed before the time was used up. Counts as kept.
@@ -69,6 +77,7 @@ enum SessionEngine {
 
     @discardableResult
     static func start(minutes: Int, now: Date = .now) throws -> ActiveSession {
+        logLockoutEndIfNeeded(now: now)
         let state = SharedStore.load()
         if let lockout = state.lockout, lockout.endsAt > now { throw StartError.coolingDown(until: lockout.endsAt) }
         if let session = state.session, session.windowEnd > now { throw StartError.alreadyRunning }
@@ -94,6 +103,7 @@ enum SessionEngine {
             state.days[DayKey.string(for: now), default: DayStats()].made += 1
         }
         Shielding.unlock()
+        EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now, group: state.study.group)
         return session
     }
 
@@ -175,6 +185,17 @@ enum SessionEngine {
         Shielding.lock(state.selection)
         DeviceActivityCenter().stopMonitoring([.session(session.id)])
 
+        let group = state.study.group
+        switch reason {
+        case .limitReached:
+            EventLog.append(.limitReached, minutes: session.requestedMinutes, sessionID: session.id, at: now, group: group)
+            if let lockout = state.lockout {
+                EventLog.append(.lockoutStarted, minutes: lockout.minutes, sessionID: session.id, at: lockout.startedAt, group: group)
+            }
+        case .windowEnded, .userEnded:
+            EventLog.append(.sessionEnded, minutes: session.usedMinutes, sessionID: session.id, detail: reason.logDetail, at: now, group: group)
+        }
+
         if reason == .limitReached, let lockout = state.lockout {
             let time = lockout.endsAt.formatted(date: .omitted, time: .shortened)
             Notifier.post(
@@ -182,6 +203,22 @@ enum SessionEngine {
                 title: "Time's up",
                 body: "That's the \(session.requestedMinutes) minutes you asked for. You can start another session at \(time)."
             )
+        }
+    }
+
+    /// Nothing runs at the moment a cooldown ends (Apple's schedules can't be that short, and nothing
+    /// needs unlocking), so "lockout ended" is written the next time any part of the app runs,
+    /// stamped with the time the cooldown actually ended.
+    static func logLockoutEndIfNeeded(now: Date = .now) {
+        var finished: Lockout?
+        let state = SharedStore.update { state in
+            guard var lockout = state.lockout, lockout.endsAt <= now, !lockout.endLogged else { return }
+            lockout.endLogged = true
+            state.lockout = lockout
+            finished = lockout
+        }
+        if let finished {
+            EventLog.append(.lockoutEnded, minutes: finished.minutes, at: finished.endsAt, group: state.study.group)
         }
     }
 

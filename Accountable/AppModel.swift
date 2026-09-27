@@ -29,6 +29,7 @@ final class AppModel: ObservableObject {
     /// Re-reads the shared file, picking up anything the extensions changed while the app was closed.
     func refresh() {
         SessionEngine.finishIfWindowPassed()
+        SessionEngine.logLockoutEndIfNeeded()
         state = SharedStore.load()
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         reassertLock()
@@ -37,6 +38,7 @@ final class AppModel: ObservableObject {
     /// Lighter than `refresh()`: just picks up changes from the extensions.
     private func poll() {
         SessionEngine.finishIfWindowPassed()
+        SessionEngine.logLockoutEndIfNeeded()
         let latest = SharedStore.load()
         if latest.session != state.session || latest.lockout != state.lockout || latest.days != state.days {
             state = latest
@@ -68,7 +70,13 @@ final class AppModel: ObservableObject {
     // MARK: Sessions
 
     func startSession(minutes: Int) throws {
-        try SessionEngine.start(minutes: minutes)
+        EventLog.append(.sessionRequested, minutes: minutes, group: state.study.group)
+        do {
+            try SessionEngine.start(minutes: minutes)
+        } catch {
+            EventLog.append(.sessionStartFailed, minutes: minutes, detail: String(describing: error), group: state.study.group)
+            throw error
+        }
         refresh()
     }
 
@@ -76,6 +84,22 @@ final class AppModel: ObservableObject {
         guard let session = state.session else { return }
         SessionEngine.finish(sessionID: session.id, reason: .userEnded)
         refresh()
+    }
+
+    // MARK: Study
+
+    func giveConsent() {
+        state = SharedStore.update { $0.study.consentedAt = .now }
+        EventLog.append(.consentGiven, group: state.study.group)
+    }
+
+    func enroll(participantID: String, group: StudyGroup, cooldown: CooldownSettings) {
+        state = SharedStore.update { state in
+            state.study.participantID = participantID
+            state.study.group = group
+            state.cooldown = cooldown
+        }
+        EventLog.append(.studyEnrolled, detail: participantID, group: group)
     }
 
     // MARK: Settings

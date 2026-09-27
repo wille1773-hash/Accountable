@@ -18,6 +18,11 @@ class ShieldActionExtension: ShieldActionDelegate {
     }
 
     private func respond(to action: ShieldAction) -> ShieldActionResponse {
+        let state = SharedStore.load()
+        let context = (state.lockout.map { $0.endsAt > .now } ?? false) ? "cooldown" : "locked"
+        let button = action == .primaryButtonPressed ? "open_accountable" : "close"
+        EventLog.append(.shieldButtonTapped, detail: "\(button),\(context)", group: state.study.group)
+
         switch action {
         case .primaryButtonPressed:
             if #available(iOS 26.5, *) {

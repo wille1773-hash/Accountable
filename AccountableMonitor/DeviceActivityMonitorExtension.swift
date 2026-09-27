@@ -23,6 +23,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
+        SessionEngine.logLockoutEndIfNeeded()
         guard let sessionID = activity.sessionID else { return }
         SessionEngine.finish(sessionID: sessionID, reason: .windowEnded)
     }

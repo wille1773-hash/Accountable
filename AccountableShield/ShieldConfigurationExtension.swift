@@ -27,6 +27,11 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let state = SharedStore.load()
         let copy = ShieldCopy.make(lockout: state.lockout, now: .now)
 
+        // Study log: "app opened while locked". iOS may not let this extension write files, and it
+        // may call this more than once per open or reuse an earlier result, so treat these counts
+        // as approximate. Button taps (logged by the shield action extension) are reliable.
+        EventLog.append(.shieldShown, detail: ShieldCopy.context(lockout: state.lockout, now: .now), group: state.study.group)
+
         return ShieldConfiguration(
             backgroundBlurStyle: .systemMaterial,
             backgroundColor: .systemBackground,
@@ -52,6 +57,12 @@ enum ShieldCopy {
         var symbol: String
         var title: String
         var subtitle: String
+    }
+
+    /// "cooldown" if a break is running, otherwise "locked".
+    static func context(lockout: Lockout?, now: Date) -> String {
+        if let lockout, lockout.endsAt > now { return "cooldown" }
+        return "locked"
     }
 
     static func make(lockout: Lockout?, now: Date) -> Text {

@@ -4,6 +4,14 @@ struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
 
+    /// Researcher passcode. It lives in the app's code, so it only keeps participants from
+    /// switching groups by accident or curiosity. Don't reuse a real password here.
+    private static let researcherPasscode = "gatorstudy"
+
+    @State private var askingPasscode = false
+    @State private var passcode = ""
+    @State private var showingResearcher = false
+
     var body: some View {
         NavigationStack {
             Form {
@@ -22,6 +30,42 @@ struct SettingsView: View {
                 }
 
                 CooldownSection()
+
+                Section {
+                    if model.state.study.isEnrolled {
+                        LabeledContent("Participant", value: model.state.study.participantID)
+                    }
+                    ShareLink(item: EventLogExport(), preview: SharePreview("Accountable study log")) {
+                        Label("Export my data (CSV)", systemImage: "square.and.arrow.up")
+                    }
+                } header: {
+                    Text("Study")
+                } footer: {
+                    Text("Your log stays on this phone. Exporting creates a spreadsheet file you can send to the researcher. It only contains app-level events like sessions and breaks, never app names or what you viewed.")
+                }
+
+                Section {
+                    Text(versionText)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onLongPressGesture(minimumDuration: 2) {
+                            passcode = ""
+                            askingPasscode = true
+                        }
+                }
+                .listRowBackground(Color.clear)
+            }
+            .navigationDestination(isPresented: $showingResearcher) {
+                ResearcherView()
+            }
+            .alert("Researcher passcode", isPresented: $askingPasscode) {
+                SecureField("Passcode", text: $passcode)
+                Button("Cancel", role: .cancel) {}
+                Button("Open") {
+                    if passcode == Self.researcherPasscode { showingResearcher = true }
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -31,6 +75,15 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+}
+
+extension SettingsView {
+    private var versionText: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "Accountable \(version) (\(build))"
     }
 }
 

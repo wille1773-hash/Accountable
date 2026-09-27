@@ -6,7 +6,9 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if !model.isAuthorized {
+            if model.state.study.consentedAt == nil {
+                ConsentView()
+            } else if !model.isAuthorized {
                 AuthorizationView()
             } else if !model.state.hasCompletedSetup {
                 AppPickerView()
