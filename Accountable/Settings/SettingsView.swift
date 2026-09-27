@@ -19,7 +19,7 @@ struct SettingsView: View {
                     NavigationLink {
                         AppPickerView(isEditing: true)
                     } label: {
-                        LabeledContent("Holding you to", value: model.state.selection.summary)
+                        LabeledContent("Holding you to", value: model.selectionSummary)
                     }
                     .disabled(model.state.session != nil)
                     if model.state.session != nil {
@@ -31,32 +31,43 @@ struct SettingsView: View {
 
                 CooldownSection()
 
-                Section {
-                    if model.state.study.isEnrolled {
+                Section("About") {
+                    NavigationLink("Why this works") { ResearchView() }
+                    NavigationLink("Privacy") { PrivacyView() }
+                }
+
+                // Only study participants see this. For everyone else nothing is logged.
+                if model.state.study.isLogging {
+                    Section {
                         LabeledContent("Participant", value: model.state.study.participantID)
+                        ShareLink(item: EventLogExport(), preview: SharePreview("Accountable study log")) {
+                            Label("Export study data (CSV)", systemImage: "square.and.arrow.up")
+                        }
+                    } header: {
+                        Text("Research study")
+                    } footer: {
+                        Text("Your study log stays on this phone. Exporting creates a spreadsheet you can send to the researcher. It only has events like sessions and breaks, never app names or what you viewed.")
                     }
-                    ShareLink(item: EventLogExport(), preview: SharePreview("Accountable study log")) {
-                        Label("Export my data (CSV)", systemImage: "square.and.arrow.up")
-                    }
-                } header: {
-                    Text("Study")
-                } footer: {
-                    Text("Your log stays on this phone. Exporting creates a spreadsheet file you can send to the researcher. It only contains app-level events like sessions and breaks, never app names or what you viewed.")
                 }
 
                 Section {
-                    Text(versionText)
-                        .font(.footnote)
-                        .foregroundStyle(Theme.secondaryText)
-                        .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())
-                        .onLongPressGesture(minimumDuration: 2) {
-                            passcode = ""
-                            askingPasscode = true
-                        }
+                    VStack(spacing: 10) {
+                        Buddy(mood: .happy, size: 36)
+                        Text(versionText)
+                            .font(.footnote)
+                            .foregroundStyle(Theme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onLongPressGesture(minimumDuration: 2) {
+                        passcode = ""
+                        askingPasscode = true
+                    }
                 }
                 .listRowBackground(Color.clear)
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background.ignoresSafeArea())
             .navigationDestination(isPresented: $showingResearcher) {
                 ResearcherView()
             }
@@ -73,6 +84,10 @@ struct SettingsView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            // When a researcher enrolls this phone, close Settings so the consent screen can appear.
+            .onChange(of: model.needsConsent) { _, needs in
+                if needs { dismiss() }
             }
         }
     }

@@ -41,19 +41,22 @@ struct LoggedEvent: Codable {
 enum EventLog {
     private static var url: URL { AppGroup.fileURL("events.jsonl") }
 
+    /// Records an event, but only for a study participant who has given consent.
+    /// For everyone else this does nothing: regular users are never logged.
     static func append(
         _ type: EventType,
         minutes: Int? = nil,
         sessionID: UUID? = nil,
         detail: String? = nil,
-        at timestamp: Date = .now,
-        group: StudyGroup? = nil
+        at timestamp: Date = .now
     ) {
+        let study = SharedStore.load().study
+        guard study.isLogging else { return }
         let event = LoggedEvent(
             timestamp: timestamp,
             loggedAt: .now,
             type: type,
-            group: group ?? SharedStore.load().study.group,
+            group: study.group,
             minutes: minutes,
             sessionID: sessionID?.uuidString,
             detail: detail

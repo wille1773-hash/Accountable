@@ -5,46 +5,52 @@ struct AuthorizationView: View {
     @State private var errorMessage: String?
     @State private var isRequesting = false
 
+    private var isReturning: Bool { model.state.hasCompletedSetup }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Spacer()
-            Text("Accountable")
-                .font(.largeTitle.bold())
-            Text("You set the limit. We hold you to it.")
-                .font(.title3)
-                .foregroundStyle(Theme.secondaryText)
+        Screen {
+            VStack(alignment: .leading, spacing: 20) {
+                Spacer()
+                Buddy(mood: isReturning ? .sleepy : .curious, size: 84)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 12)
 
-            Card {
-                if model.state.hasCompletedSetup {
-                    Text("Screen Time access is off")
-                        .font(.headline)
-                    Text("Without it, Accountable can't lock anything. Turn it back on to pick up where you left off.")
-                        .foregroundStyle(Theme.secondaryText)
-                } else {
-                    Text("First, Screen Time access")
-                        .font(.headline)
-                    Text("Accountable uses Screen Time to lock the apps you choose and unlock them for as long as you say. Your usage stays on this phone.")
-                        .foregroundStyle(Theme.secondaryText)
+                Text(isReturning ? "Screen Time access is off" : "One permission")
+                    .font(Theme.display(32))
+                    .foregroundStyle(Theme.ink)
+                Text(isReturning
+                     ? "Without it, Accountable can't lock anything. Turn it back on to pick up where you left off."
+                     : "Accountable uses Apple's Screen Time to lock the apps you pick and unlock them for exactly as long as you say.")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Card(padding: 18) {
+                    Label("Your usage stays on this phone", systemImage: "iphone")
+                    Label("Apple doesn't share which apps you use with us", systemImage: "eye.slash")
+                    Label("You can turn it off any time in Settings", systemImage: "arrow.uturn.backward")
                 }
-            }
+                .font(.subheadline)
+                .foregroundStyle(Theme.ink)
 
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.accent)
+                }
 
-            Spacer()
+                Spacer()
 
-            Button {
-                Task { await request() }
-            } label: {
-                Text(isRequesting ? "Waiting for Face ID…" : "Turn on Screen Time access")
+                Button {
+                    Task { await request() }
+                } label: {
+                    Text(isRequesting ? "Waiting for Face ID…" : "Turn on Screen Time access")
+                }
+                .buttonStyle(.primary)
+                .disabled(isRequesting)
+                .padding(.bottom, 8)
             }
-            .buttonStyle(.primary)
-            .disabled(isRequesting)
         }
-        .padding(24)
     }
 
     private func request() async {
@@ -54,7 +60,7 @@ struct AuthorizationView: View {
             try await model.requestAuthorization()
             errorMessage = nil
         } catch {
-            errorMessage = "That didn't go through. You can try again. (\(error.localizedDescription))"
+            errorMessage = "That didn't go through. Try again? (\(error.localizedDescription))"
         }
     }
 }

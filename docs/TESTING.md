@@ -13,8 +13,9 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 
 ## Milestone checks
 
-### 1. Setup, authorization, app picker
-- [ ] First launch shows the consent screen (added in milestone 6). Tap **I agree**.
+### 1. Intro, authorization, app picker
+- [ ] First launch shows the intro: welcome, three research cards, your numbers, your life in years, how it works.
+- [ ] Moving the slider and age updates the life projection.
 - [ ] **Turn on Screen Time access** shows Apple's prompt and Face ID.
 - [ ] Choose 2–3 apps (e.g. TikTok, Instagram). The card lists them. Tap **Continue**.
 - [ ] Force-quit and reopen: you land on the home screen with the same apps.
@@ -42,8 +43,10 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 - [ ] Streak shows 0 after a limit hit today; on a clean day it counts up from setup day.
 
 ### 6. Study mode
-- [ ] Settings → press and hold the version number for 2 seconds → enter the researcher passcode.
-- [ ] Set a participant ID and group, then **Save**. The Breaks section now says it's set by the study.
+- [ ] Before enrolling, Settings has no Study section, and nothing is logged.
+- [ ] Settings → press and hold the version number (under the little robot) for 2 seconds → enter the researcher passcode.
+- [ ] Set a participant ID and group, then **Save**. Settings closes and the consent screen appears.
+- [ ] **No thanks** removes the enrollment. **I agree** starts logging, and the Breaks section now says it's set by the study.
 - [ ] **Export my data (CSV)** opens the share sheet. AirDrop it to your Mac and check the rows match what you did.
 - [ ] Check whether `shield_shown` rows appear. If none do, iOS isn't letting the lock screen extension write, and only `shield_button_tapped` rows will show opens of locked apps.
 

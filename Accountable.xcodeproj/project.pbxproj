@@ -189,8 +189,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AC0000000000000000000012 /* AccountableMonitor */,
 				AC0000000000000000000011 /* Shared */,
+				AC0000000000000000000012 /* AccountableMonitor */,
 			);
 			name = AccountableMonitor;
 			productName = AccountableMonitor;
@@ -210,8 +210,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AC0000000000000000000013 /* AccountableShield */,
 				AC0000000000000000000011 /* Shared */,
+				AC0000000000000000000013 /* AccountableShield */,
 			);
 			name = AccountableShield;
 			productName = AccountableShield;
@@ -231,8 +231,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AC0000000000000000000014 /* AccountableShieldAction */,
 				AC0000000000000000000011 /* Shared */,
+				AC0000000000000000000014 /* AccountableShieldAction */,
 			);
 			name = AccountableShieldAction;
 			productName = AccountableShieldAction;

@@ -21,7 +21,7 @@ class ShieldActionExtension: ShieldActionDelegate {
         let state = SharedStore.load()
         let context = (state.lockout.map { $0.endsAt > .now } ?? false) ? "cooldown" : "locked"
         let button = action == .primaryButtonPressed ? "open_accountable" : "close"
-        EventLog.append(.shieldButtonTapped, detail: "\(button),\(context)", group: state.study.group)
+        EventLog.append(.shieldButtonTapped, detail: "\(button),\(context)")
 
         switch action {
         case .primaryButtonPressed:

@@ -88,7 +88,7 @@ enum SessionEngine {
         let state = SharedStore.load()
         if let lockout = state.lockout, lockout.endsAt > now { throw StartError.coolingDown(until: lockout.endsAt) }
         if let session = state.session, session.windowEnd > now { throw StartError.alreadyRunning }
-        guard state.hasSelection else { throw StartError.nothingSelected }
+        guard state.hasSelection || DemoMode.isOn else { throw StartError.nothingSelected }
 
         var session = ActiveSession(
             id: UUID(),
@@ -96,6 +96,16 @@ enum SessionEngine {
             startedAt: now,
             windowEnd: now.addingTimeInterval(max(minimumWindow, Double(minutes) * 60 * 2))
         )
+
+        if DemoMode.isOn {
+            // No Screen Time in the Simulator: the app advances the session itself (see AppModel).
+            session.windowEnd = now.addingTimeInterval(Double(minutes) * DemoMode.minute * 2)
+            SharedStore.update { state in
+                state.session = session
+                state.days[DayKey.string(for: now), default: DayStats()].made += 1
+            }
+            return session
+        }
 
         let center = DeviceActivityCenter()
         center.stopMonitoring()
@@ -113,7 +123,7 @@ enum SessionEngine {
             state.days[DayKey.string(for: now), default: DayStats()].made += 1
         }
         Shielding.unlock()
-        EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now, group: state.study.group)
+        EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now)
         return session
     }
 
@@ -206,25 +216,25 @@ enum SessionEngine {
                 state.limitHitsByDay[DayKey.string(for: now), default: 0] += 1
                 let hitsToday = state.limitHitsByDay[DayKey.string(for: now)] ?? 1
                 let minutes = CooldownPolicy.minutes(forHitNumber: hitsToday, state: state)
-                state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * 60), minutes: minutes)
+                state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * DemoMode.minute), minutes: minutes)
             } else {
                 state.days[day, default: DayStats()].kept += 1
             }
         }
         guard let session = ended else { return }
 
-        Shielding.lock(state.selection)
-        DeviceActivityCenter().stopMonitoring([.session(session.id)])
-
-        let group = state.study.group
+        if !DemoMode.isOn {
+            Shielding.lock(state.selection)
+            DeviceActivityCenter().stopMonitoring([.session(session.id)])
+        }
         switch reason {
         case .limitReached:
-            EventLog.append(.limitReached, minutes: session.requestedMinutes, sessionID: session.id, at: now, group: group)
+            EventLog.append(.limitReached, minutes: session.requestedMinutes, sessionID: session.id, at: now)
             if let lockout = state.lockout {
-                EventLog.append(.lockoutStarted, minutes: lockout.minutes, sessionID: session.id, at: lockout.startedAt, group: group)
+                EventLog.append(.lockoutStarted, minutes: lockout.minutes, sessionID: session.id, at: lockout.startedAt)
             }
         case .windowEnded, .userEnded, .monitoringLost, .authorizationLost:
-            EventLog.append(.sessionEnded, minutes: session.usedMinutes, sessionID: session.id, detail: reason.logDetail, at: now, group: group)
+            EventLog.append(.sessionEnded, minutes: session.usedMinutes, sessionID: session.id, detail: reason.logDetail, at: now)
         }
 
         if reason == .limitReached, let lockout = state.lockout {
@@ -241,15 +251,17 @@ enum SessionEngine {
     /// needs unlocking), so "lockout ended" is written the next time any part of the app runs,
     /// stamped with the time the cooldown actually ended.
     static func logLockoutEndIfNeeded(now: Date = .now) {
+        // Cheap read first: this runs every few seconds while the app is open.
+        guard let current = SharedStore.load().lockout, current.endsAt <= now, !current.endLogged else { return }
         var finished: Lockout?
-        let state = SharedStore.update { state in
+        SharedStore.update { state in
             guard var lockout = state.lockout, lockout.endsAt <= now, !lockout.endLogged else { return }
             lockout.endLogged = true
             state.lockout = lockout
             finished = lockout
         }
         if let finished {
-            EventLog.append(.lockoutEnded, minutes: finished.minutes, at: finished.endsAt, group: state.study.group)
+            EventLog.append(.lockoutEnded, minutes: finished.minutes, at: finished.endsAt)
         }
     }
 
@@ -265,6 +277,7 @@ enum SessionEngine {
     /// Ends a session iOS is no longer monitoring. Without monitoring, nothing would re-lock the apps.
     /// Monitoring normally survives a restart; this is the safety net if it doesn't.
     static func finishIfMonitoringLost(now: Date = .now) {
+        guard !DemoMode.isOn else { return }
         let state = SharedStore.load()
         guard let session = state.session, session.windowEnd > now,
               // Give iOS a moment to register a session that just started.

@@ -12,51 +12,74 @@ struct AppPickerView: View {
 
     @State private var selection = FamilyActivitySelection()
     @State private var showingPicker = false
+    @State private var demoPicked = false
     @State private var loaded = false
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            if !isEditing { Spacer() }
-            Text(isEditing ? "Your apps" : "Which apps should we hold you to?")
-                .font(.largeTitle.bold())
-            Text("These stay locked until you open Accountable and say how long you want.")
-                .foregroundStyle(Theme.secondaryText)
+    private var hasPicked: Bool { DemoMode.isOn ? demoPicked : !selection.isEmpty }
 
-            Card {
-                if selection.isEmpty {
-                    Text("Nothing picked yet.")
-                        .foregroundStyle(Theme.secondaryText)
-                } else {
-                    Text(selection.summary)
-                        .font(.headline)
-                    ForEach(Array(selection.applicationTokens), id: \.self) { token in
-                        Label(token)
-                    }
-                    ForEach(Array(selection.categoryTokens), id: \.self) { token in
-                        Label(token)
+    var body: some View {
+        Screen {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(isEditing ? "Your apps" : "Which apps pull you in?")
+                    .font(Theme.display(32))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.top, isEditing ? 24 : 72)
+                Text("They stay locked until you open Accountable and say how long you want.")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Theme.secondaryText)
+
+                Card {
+                    if !hasPicked {
+                        Text("Nothing picked yet.")
+                            .foregroundStyle(Theme.secondaryText)
+                    } else if DemoMode.isOn {
+                        Eyebrow("Demo apps")
+                        ForEach(DemoMode.appNames, id: \.self) { name in
+                            Label(name, systemImage: "app.fill")
+                                .foregroundStyle(Theme.ink)
+                        }
+                    } else {
+                        Eyebrow(selection.summary)
+                        ForEach(Array(selection.applicationTokens), id: \.self) { token in
+                            Label(token)
+                        }
+                        ForEach(Array(selection.categoryTokens), id: \.self) { token in
+                            Label(token)
+                        }
                     }
                 }
-            }
+                .animation(Theme.spring, value: hasPicked)
 
-            Button(selection.isEmpty ? "Choose apps" : "Change apps") {
-                showingPicker = true
-            }
-            .font(.headline)
+                Button {
+                    if DemoMode.isOn { demoPicked = true } else { showingPicker = true }
+                } label: {
+                    Label(hasPicked ? "Change apps" : "Choose apps", systemImage: "plus.circle")
+                        .font(.headline)
+                        .foregroundStyle(Theme.accent)
+                }
 
-            Spacer()
+                if DemoMode.isOn {
+                    Text("Simulator demo: Apple's app picker only works on a real iPhone.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.secondaryText)
+                }
 
-            Button(isEditing ? "Save" : "Continue") {
-                model.saveSelection(selection)
-                if isEditing { dismiss() }
+                Spacer()
+
+                Button(isEditing ? "Save" : "Continue") {
+                    model.saveSelection(selection)
+                    if isEditing { dismiss() }
+                }
+                .buttonStyle(.primary)
+                .disabled(!hasPicked)
+                .padding(.bottom, 8)
             }
-            .buttonStyle(.primary)
-            .disabled(selection.isEmpty)
         }
-        .padding(24)
         .familyActivityPicker(isPresented: $showingPicker, selection: $selection)
         .onAppear {
             guard !loaded else { return }
             selection = model.state.selection
+            demoPicked = DemoMode.isOn && model.state.hasCompletedSetup
             loaded = true
         }
     }

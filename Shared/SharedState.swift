@@ -49,12 +49,20 @@ struct CooldownSettings: Codable, Equatable {
     var steps = [3, 10, 30, 60]
 }
 
+struct Profile: Codable, Equatable {
+    /// Typical daily social media time, in minutes. Defaults to the global average (about 2h 20m).
+    var dailyMinutes = 140
+    var age = 20
+}
+
 struct StudySettings: Codable, Equatable {
     var participantID = ""
     var group: StudyGroup = .none
     var consentedAt: Date?
 
     var isEnrolled: Bool { !participantID.isEmpty && group != .none }
+    /// Logging only happens for enrolled participants who have agreed to the consent screen.
+    var isLogging: Bool { isEnrolled && consentedAt != nil }
 }
 
 /// Everything shared between the app and its extensions, stored as one JSON file in the App Group.
@@ -75,6 +83,10 @@ struct SharedState: Codable {
     var limitHitsByDay: [String: Int] = [:]
     /// True once Screen Time access has been granted, so we can tell when it's been taken away.
     var wasAuthorized = false
+    /// Finished the intro walkthrough.
+    var hasSeenIntro = false
+    /// What the user told us in the intro, for the lifetime projection. Never logged.
+    var profile = Profile()
 
     init() {}
 
@@ -91,6 +103,8 @@ struct SharedState: Codable {
         study = (try? c.decodeIfPresent(StudySettings.self, forKey: .study)) ?? StudySettings()
         wasAuthorized = (try? c.decodeIfPresent(Bool.self, forKey: .wasAuthorized)) ?? false
         limitHitsByDay = (try? c.decodeIfPresent([String: Int].self, forKey: .limitHitsByDay)) ?? [:]
+        hasSeenIntro = (try? c.decodeIfPresent(Bool.self, forKey: .hasSeenIntro)) ?? false
+        profile = (try? c.decodeIfPresent(Profile.self, forKey: .profile)) ?? Profile()
     }
 
     var hasSelection: Bool {
