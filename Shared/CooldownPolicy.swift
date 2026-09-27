@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Flat: every break is `flatMinutes`.
 /// Escalating: the Nth limit hit today gets `steps[N-1]`, staying on the last step after that.
-/// Counts reset at midnight because they're read from today's stats.
+/// Counts reset at midnight because they're kept per calendar day.
 ///
 /// If the participant is enrolled in the study, their group decides the mode and they can't change it.
 enum CooldownPolicy {
@@ -26,7 +26,7 @@ enum CooldownPolicy {
 
     /// Break length if the user hits the limit once more today. Shown on the home screen.
     static func nextMinutes(state: SharedState, now: Date = .now) -> Int {
-        let hitsToday = state.days[DayKey.string(for: now)]?.limitsHit ?? 0
+        let hitsToday = state.limitHitsByDay[DayKey.string(for: now)] ?? 0
         return minutes(forHitNumber: hitsToday + 1, state: state)
     }
 }

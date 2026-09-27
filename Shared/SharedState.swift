@@ -69,6 +69,12 @@ struct SharedState: Codable {
     var firstDay: String?
     var cooldown = CooldownSettings()
     var study = StudySettings()
+    /// Limit hits per calendar day they happened on, for escalating breaks. Separate from `days`,
+    /// which files a session under the day it started, so a session that runs past midnight
+    /// still escalates correctly.
+    var limitHitsByDay: [String: Int] = [:]
+    /// True once Screen Time access has been granted, so we can tell when it's been taken away.
+    var wasAuthorized = false
 
     init() {}
 
@@ -83,6 +89,8 @@ struct SharedState: Codable {
         firstDay = try? c.decodeIfPresent(String.self, forKey: .firstDay)
         cooldown = (try? c.decodeIfPresent(CooldownSettings.self, forKey: .cooldown)) ?? CooldownSettings()
         study = (try? c.decodeIfPresent(StudySettings.self, forKey: .study)) ?? StudySettings()
+        wasAuthorized = (try? c.decodeIfPresent(Bool.self, forKey: .wasAuthorized)) ?? false
+        limitHitsByDay = (try? c.decodeIfPresent([String: Int].self, forKey: .limitHitsByDay)) ?? [:]
     }
 
     var hasSelection: Bool {

@@ -15,10 +15,17 @@ struct AuthorizationView: View {
                 .foregroundStyle(Theme.secondaryText)
 
             Card {
-                Text("First, Screen Time access")
-                    .font(.headline)
-                Text("Accountable uses Screen Time to lock the apps you choose and unlock them for as long as you say. Your usage stays on this phone.")
-                    .foregroundStyle(Theme.secondaryText)
+                if model.state.hasCompletedSetup {
+                    Text("Screen Time access is off")
+                        .font(.headline)
+                    Text("Without it, Accountable can't lock anything. Turn it back on to pick up where you left off.")
+                        .foregroundStyle(Theme.secondaryText)
+                } else {
+                    Text("First, Screen Time access")
+                        .font(.headline)
+                    Text("Accountable uses Screen Time to lock the apps you choose and unlock them for as long as you say. Your usage stays on this phone.")
+                        .foregroundStyle(Theme.secondaryText)
+                }
             }
 
             if let errorMessage {

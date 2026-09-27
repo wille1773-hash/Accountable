@@ -58,6 +58,8 @@ enum SessionEngine {
             case .limitReached: "limit_reached"
             case .windowEnded: "window_closed"
             case .userEnded: "ended_by_user"
+            case .monitoringLost: "monitoring_lost"
+            case .authorizationLost: "authorization_lost"
             }
         }
 
@@ -67,6 +69,11 @@ enum SessionEngine {
         case windowEnded
         /// The user tapped "I'm done". Counts as kept.
         case userEnded
+        /// iOS stopped monitoring the session (for example, it didn't survive a restart). Counts as kept,
+        /// since the user didn't run out of time.
+        case monitoringLost
+        /// Screen Time access was turned off mid-session. Counted as neither kept nor broken.
+        case authorizationLost
     }
 
     static let minimumWindow: TimeInterval = 15 * 60
@@ -83,7 +90,7 @@ enum SessionEngine {
         if let session = state.session, session.windowEnd > now { throw StartError.alreadyRunning }
         guard state.hasSelection else { throw StartError.nothingSelected }
 
-        let session = ActiveSession(
+        var session = ActiveSession(
             id: UUID(),
             requestedMinutes: minutes,
             startedAt: now,
@@ -92,11 +99,14 @@ enum SessionEngine {
 
         let center = DeviceActivityCenter()
         center.stopMonitoring()
-        try center.startMonitoring(
-            .session(session.id),
-            during: schedule(for: session, now: now),
-            events: events(for: minutes, selection: state.selection)
-        )
+        let events = events(for: minutes, selection: state.selection)
+        do {
+            try center.startMonitoring(.session(session.id), during: schedule(for: session, now: now), events: events)
+        } catch DeviceActivityCenter.MonitoringError.invalidDateComponents {
+            // If iOS won't accept a window that crosses midnight, end it at midnight instead.
+            session.windowEnd = min(session.windowEnd, endOfDay(now))
+            try center.startMonitoring(.session(session.id), during: timeOfDaySchedule(for: session, now: now), events: events)
+        }
 
         SharedStore.update { state in
             state.session = session
@@ -119,6 +129,24 @@ enum SessionEngine {
             repeats: false,
             warningTime: warning
         )
+    }
+
+    /// Fallback schedule using times of day only, which can't cross midnight.
+    private static func timeOfDaySchedule(for session: ActiveSession, now: Date) -> DeviceActivitySchedule {
+        let calendar = Calendar.current
+        let start = max(calendar.startOfDay(for: now), min(now, session.windowEnd.addingTimeInterval(-minimumWindow)))
+        return DeviceActivitySchedule(
+            intervalStart: calendar.dateComponents([.hour, .minute, .second], from: start),
+            intervalEnd: calendar.dateComponents([.hour, .minute, .second], from: session.windowEnd),
+            repeats: false
+        )
+    }
+
+    /// 23:59:59 on the day of `date`.
+    private static func endOfDay(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date)) ?? date
+        return startOfTomorrow.addingTimeInterval(-1)
     }
 
     private static func events(for minutes: Int, selection: FamilyActivitySelection) -> [DeviceActivityEvent.Name: DeviceActivityEvent] {
@@ -169,11 +197,14 @@ enum SessionEngine {
             ended = session
             state.session = nil
             let day = DayKey.string(for: session.startedAt)
-            if reason == .limitReached {
+            if reason == .authorizationLost {
+                // No verdict: the session just stopped.
+            } else if reason == .limitReached {
                 state.days[day, default: DayStats()].limitsHit += 1
                 // Escalation counts limit hits on the calendar day the limit was hit,
                 // so it resets at midnight even if the session started yesterday.
-                let hitsToday = state.days[DayKey.string(for: now)]?.limitsHit ?? 0
+                state.limitHitsByDay[DayKey.string(for: now), default: 0] += 1
+                let hitsToday = state.limitHitsByDay[DayKey.string(for: now)] ?? 1
                 let minutes = CooldownPolicy.minutes(forHitNumber: hitsToday, state: state)
                 state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * 60), minutes: minutes)
             } else {
@@ -192,7 +223,7 @@ enum SessionEngine {
             if let lockout = state.lockout {
                 EventLog.append(.lockoutStarted, minutes: lockout.minutes, sessionID: session.id, at: lockout.startedAt, group: group)
             }
-        case .windowEnded, .userEnded:
+        case .windowEnded, .userEnded, .monitoringLost, .authorizationLost:
             EventLog.append(.sessionEnded, minutes: session.usedMinutes, sessionID: session.id, detail: reason.logDetail, at: now, group: group)
         }
 
@@ -228,6 +259,18 @@ enum SessionEngine {
         let state = SharedStore.load()
         if let session = state.session, session.windowEnd <= now {
             finish(sessionID: session.id, reason: .windowEnded, now: now)
+        }
+    }
+
+    /// Ends a session iOS is no longer monitoring. Without monitoring, nothing would re-lock the apps.
+    /// Monitoring normally survives a restart; this is the safety net if it doesn't.
+    static func finishIfMonitoringLost(now: Date = .now) {
+        let state = SharedStore.load()
+        guard let session = state.session, session.windowEnd > now,
+              // Give iOS a moment to register a session that just started.
+              now.timeIntervalSince(session.startedAt) > 10 else { return }
+        if !DeviceActivityCenter().activities.contains(.session(session.id)) {
+            finish(sessionID: session.id, reason: .monitoringLost, now: now)
         }
     }
 }
