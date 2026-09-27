@@ -1,17 +1,19 @@
 import SwiftUI
 
-/// Warm and minimal: ivory paper, ink text, one terracotta accent, serif headlines, lots of room.
+/// Calm and minimal: soft stone background, deep green accent, serif headlines, lots of room.
 enum Theme {
-    static let background = Color(light: 0xFAF8F3, dark: 0x1C1B19)
-    static let card = Color(light: 0xF1ECE2, dark: 0x282623)
-    static let ink = Color(light: 0x22211E, dark: 0xF1EEE7)
-    static let secondaryText = Color(light: 0x6B675F, dark: 0xA9A49A)
-    static let hairline = Color(light: 0xE4DDD0, dark: 0x3A3733)
-    static let accent = Color(light: 0xC96442, dark: 0xE08A66)
+    static let background = Color(light: 0xF6F7F3, dark: 0x141916)
+    static let card = Color(light: 0xEBEFE7, dark: 0x1F2622)
+    static let ink = Color(light: 0x1C2420, dark: 0xEEF2EC)
+    static let secondaryText = Color(light: 0x5C6862, dark: 0x9AA69F)
+    static let hairline = Color(light: 0xD8DED4, dark: 0x303934)
+    static let accent = Color(light: 0x2F7A58, dark: 0x6CC79A)
     /// Soft tint of the accent for fills behind accent content.
-    static let accentSoft = Color(light: 0xF3DDD2, dark: 0x3F2B22)
+    static let accentSoft = Color(light: 0xD3E8DA, dark: 0x21382B)
     /// Muted fill for "past" or inactive things, e.g. years already lived.
-    static let muted = Color(light: 0xD9D2C5, dark: 0x45413B)
+    static let muted = Color(light: 0xCBD3C8, dark: 0x3A443E)
+    /// Buddy's body color. A touch lighter than the accent so the face reads clearly.
+    static let buddy = Color(light: 0x3E8E68, dark: 0x5DB88A)
 
     // Type
     static func display(_ size: CGFloat = 34) -> Font { .system(size: size, weight: .regular, design: .serif) }
@@ -81,7 +83,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .font(.system(.headline))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 17)
-            .foregroundStyle(Color(light: 0xFFFFFF, dark: 0x1C1B19))
+            .foregroundStyle(Color(light: 0xFFFFFF, dark: 0x141916))
             .background(Theme.ink.opacity(isEnabled ? 1 : 0.25),
                         in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.98 : 1)

@@ -3,7 +3,7 @@ import Foundation
 /// The lifetime projection shown in the intro.
 ///
 /// Assumptions (shown to the user): the same daily time every day, social media from age 13
-/// (the minimum age most platforms set), and living to 79, about the US average life expectancy.
+/// (the minimum age most platforms set), and living to 79, US life expectancy in 2024 (CDC).
 struct LifeMath {
     static let startAge = 13
     static let lifeExpectancy = 79
@@ -16,7 +16,8 @@ struct LifeMath {
 
     var yearsSoFar: Double { dailyFractionOfLife * Double(max(0, age - Self.startAge)) }
     var daysSoFar: Int { Int((yearsSoFar * 365).rounded()) }
-    var yearsAhead: Double { dailyFractionOfLife * Double(max(0, Self.lifeExpectancy - age)) }
+    var yearsLeft: Int { max(0, Self.lifeExpectancy - age) }
+    var yearsAhead: Double { dailyFractionOfLife * Double(yearsLeft) }
     /// Share of waking hours, e.g. 0.15 for 2h 24m a day.
     var shareOfWakingHours: Double { Double(dailyMinutes) / 60 / Self.wakingHoursPerDay }
 

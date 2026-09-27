@@ -49,6 +49,17 @@ struct CooldownSettings: Codable, Equatable {
     var steps = [3, 10, 30, 60]
 }
 
+/// How Buddy's mood moves. Breaking a promise costs more than keeping one earns, so the only
+/// way back up is a run of kept promises.
+enum BuddyHealth {
+    static let range = 0...10
+    static let start = 6
+    static let keptGain = 1
+    static let brokenLoss = 2
+
+    static func clamp(_ value: Int) -> Int { min(range.upperBound, max(range.lowerBound, value)) }
+}
+
 struct Profile: Codable, Equatable {
     /// Typical daily social media time, in minutes. Defaults to the global average (about 2h 20m).
     var dailyMinutes = 140
@@ -87,6 +98,10 @@ struct SharedState: Codable {
     var hasSeenIntro = false
     /// What the user told us in the intro, for the lifetime projection. Never logged.
     var profile = Profile()
+    /// Buddy's mood, 0 (miserable) to 10 (thriving). Kept promises raise it, broken ones lower it.
+    var buddyHealth = BuddyHealth.start
+    /// Names of the pretend apps picked in the Simulator demo.
+    var demoApps: [String] = []
 
     init() {}
 
@@ -105,6 +120,8 @@ struct SharedState: Codable {
         limitHitsByDay = (try? c.decodeIfPresent([String: Int].self, forKey: .limitHitsByDay)) ?? [:]
         hasSeenIntro = (try? c.decodeIfPresent(Bool.self, forKey: .hasSeenIntro)) ?? false
         profile = (try? c.decodeIfPresent(Profile.self, forKey: .profile)) ?? Profile()
+        buddyHealth = (try? c.decodeIfPresent(Int.self, forKey: .buddyHealth)) ?? BuddyHealth.start
+        demoApps = (try? c.decodeIfPresent([String].self, forKey: .demoApps)) ?? []
     }
 
     var hasSelection: Bool {

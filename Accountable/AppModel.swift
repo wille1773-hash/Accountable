@@ -38,7 +38,9 @@ final class AppModel: ObservableObject {
 
     /// e.g. "3 apps, 1 category"
     var selectionSummary: String {
-        DemoMode.isOn ? "\(DemoMode.appNames.count) demo apps" : state.selection.summary
+        guard DemoMode.isOn else { return state.selection.summary }
+        let apps = state.demoApps
+        return apps.count <= 2 ? apps.joined(separator: " and ") : "\(apps.count) apps"
     }
 
     /// Re-reads the shared file, picking up anything the extensions changed while the app was closed.
@@ -136,6 +138,16 @@ final class AppModel: ObservableObject {
         // Counts only: iOS doesn't reveal which apps were picked.
         let counts = "apps=\(selection.applicationTokens.count);categories=\(selection.categoryTokens.count);websites=\(selection.webDomainTokens.count)"
         EventLog.append(.selectionChanged, detail: (wasSetUp ? "changed;" : "initial;") + counts)
+        Task { await Notifier.requestPermission() }
+    }
+
+    /// Simulator only: remember the pretend apps.
+    func saveDemoApps(_ apps: [String]) {
+        state = SharedStore.update { state in
+            state.demoApps = apps
+            state.hasCompletedSetup = true
+            if state.firstDay == nil { state.firstDay = DayKey.string(for: .now) }
+        }
         Task { await Notifier.requestPermission() }
     }
 

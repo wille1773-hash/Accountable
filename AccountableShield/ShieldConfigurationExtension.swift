@@ -47,10 +47,10 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
 enum ShieldCopy {
     // Same palette as the app's Theme (extensions can't use the app's code or assets).
-    static let accent = dynamic(light: 0xC96442, dark: 0xE08A66)
-    static let background = dynamic(light: 0xFAF8F3, dark: 0x1C1B19)
-    static let ink = dynamic(light: 0x22211E, dark: 0xF1EEE7)
-    static let secondary = dynamic(light: 0x6B675F, dark: 0xA9A49A)
+    static let accent = dynamic(light: 0x2F7A58, dark: 0x6CC79A)
+    static let background = dynamic(light: 0xF6F7F3, dark: 0x141916)
+    static let ink = dynamic(light: 0x1C2420, dark: 0xEEF2EC)
+    static let secondary = dynamic(light: 0x5C6862, dark: 0x9AA69F)
 
     private static func dynamic(light: UInt32, dark: UInt32) -> UIColor {
         UIColor { traits in

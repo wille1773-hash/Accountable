@@ -207,9 +207,11 @@ enum SessionEngine {
             ended = session
             state.session = nil
             let day = DayKey.string(for: session.startedAt)
-            if reason == .authorizationLost {
-                // No verdict: the session just stopped.
+            if reason == .authorizationLost || reason == .monitoringLost {
+                // Not the user's doing, so Buddy's mood doesn't change.
+                if reason == .monitoringLost { state.days[day, default: DayStats()].kept += 1 }
             } else if reason == .limitReached {
+                state.buddyHealth = BuddyHealth.clamp(state.buddyHealth - BuddyHealth.brokenLoss)
                 state.days[day, default: DayStats()].limitsHit += 1
                 // Escalation counts limit hits on the calendar day the limit was hit,
                 // so it resets at midnight even if the session started yesterday.
@@ -218,6 +220,10 @@ enum SessionEngine {
                 let minutes = CooldownPolicy.minutes(forHitNumber: hitsToday, state: state)
                 state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * DemoMode.minute), minutes: minutes)
             } else {
+                // A session ended within a minute doesn't cheer Buddy up, so the mood can't be farmed.
+                if now.timeIntervalSince(session.startedAt) >= DemoMode.minute {
+                    state.buddyHealth = BuddyHealth.clamp(state.buddyHealth + BuddyHealth.keptGain)
+                }
                 state.days[day, default: DayStats()].kept += 1
             }
         }

@@ -21,5 +21,5 @@ enum DemoMode {
         isOn ? real * 60 / secondsPerMinute : real
     }
 
-    static let appNames = ["TikTok", "Instagram", "YouTube"]
+    static let allApps = ["TikTok", "Instagram", "YouTube", "Snapchat", "X", "Reddit"]
 }

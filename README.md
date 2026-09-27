@@ -10,17 +10,18 @@ Most screen time apps set a daily cap and let you ignore it. Accountable asks on
 
 ## How it works
 
-1. **A short intro.** Three research findings, then your own numbers: how much of your life social media is on track to take, and how much you'd get back.
+1. **A short intro.** Three research findings, then your own numbers: how many of your remaining years social media is on track to take, with a slider to see how many you'd win back by cutting down.
 2. **Pick your apps.** Grant Screen Time access and choose the apps that pull you in, using Apple's picker.
 3. **Locked by default.** Selected apps stay shielded until you start a session.
 4. **Say how long.** 5, 10, 15, 30 minutes, or your own number. Only time in those apps counts.
 5. **Keep your word.** When the time's used up, the apps lock again. By default each break that day is longer than the last (3, 10, 30, 60 minutes), resetting at midnight. You can change this in Settings.
 6. **See how you're doing.** Today's promises kept, your streak, and the week at a glance.
+7. **Meet Buddy.** A small robot whose mood follows your promises. Keep them and Buddy grows, brightens and hops around. Break them and Buddy shrinks, fades and droops. Only kept promises (of at least a minute) bring Buddy back.
 
 ## The research behind it
 
 - **Less scrolling, less lonely.** Students who limited social media to about 30 minutes a day felt significantly less lonely and depressed within three weeks. *Hunt et al., Journal of Social and Clinical Psychology, 2018.*
-- **An hour back, every day.** People who deactivated Facebook for four weeks gained about an hour a day and reported higher well-being. *Allcott et al., American Economic Review, 2020.*
+- **An hour back, every day.** People paid to deactivate Facebook for four weeks freed up about 60 minutes a day and reported small but significant gains in well-being. *Allcott et al., American Economic Review, 2020.*
 - **Deciding ahead works.** Across 94 studies, deciding exactly when and how you'll act made people much more likely to follow through. *Gollwitzer & Sheeran, Advances in Experimental Social Psychology, 2006.*
 
 ## Privacy

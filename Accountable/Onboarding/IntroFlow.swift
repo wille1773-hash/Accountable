@@ -207,7 +207,7 @@ struct HourBackPage: View {
         IntroPage(
             eyebrow: "What the research says",
             title: "An hour back, every day",
-            bodyText: "When people took a four-week break from Facebook, they got back about an hour a day. They spent more of it with friends and family, and said they felt happier.",
+            bodyText: "People paid to quit Facebook for four weeks got back about an hour a day. They spent more time offline, including with friends and family, and reported small but real gains in happiness.",
             source: "Allcott et al., American Economic Review, 2020"
         ) {
             ZStack {
@@ -319,50 +319,84 @@ struct YourNumbersPage: View {
 
 struct YourLifePage: View {
     var math: LifeMath
+    /// The "what if" daily time the user is trying out, in minutes.
+    @State private var goalMinutes: Int
     @State private var revealed = 0
+
+    init(math: LifeMath) {
+        self.math = math
+        // Start the "what if" at 30 minutes a day, the level from the UPenn study.
+        _goalMinutes = State(initialValue: min(30, math.dailyMinutes))
+    }
+
+    private var goal: LifeMath { LifeMath(dailyMinutes: goalMinutes, age: math.age) }
+    private var yearsBack: Double { math.yearsAhead - goal.yearsAhead }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Eyebrow("Your life, in years")
-                    .padding(.top, 32)
+            VStack(alignment: .leading, spacing: 18) {
+                Eyebrow("The rest of your life")
+                    .padding(.top, 28)
 
-                HStack(alignment: .top, spacing: 20) {
-                    LifeGrid(math: math, revealed: revealed)
-                        .frame(maxWidth: 210)
-                    VStack(alignment: .leading, spacing: 10) {
-                        legend(Theme.muted, "Lived")
-                        legend(Theme.accentSoft, "Lived on social")
-                        legend(Theme.accent, "Social, at this pace")
-                        Text("One dot per year. Each row is a decade.")
-                            .font(.caption)
-                            .foregroundStyle(Theme.secondaryText)
-                            .padding(.top, 4)
-                    }
-                }
-                .padding(.vertical, 4)
-
-                Text("At this pace, you'll spend \(LifeMath.format(years: math.yearsAhead)) more years of your life on social media.")
-                    .font(Theme.display(26))
-                    .foregroundStyle(Theme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if math.daysSoFar > 0 {
-                    Text("You've already spent about \(math.daysSoFar.formatted()) days there since you were \(LifeMath.startAge). That's \(Int((math.shareOfWakingHours * 100).rounded()))% of your waking hours.")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(LifeMath.format(years: math.yearsAhead)) years")
+                        .font(Theme.bigNumber(56))
+                        .foregroundStyle(Theme.ink)
+                    Text("on social media, if you keep spending \(LifeMath.format(minutes: math.dailyMinutes)) a day.")
                         .font(.system(size: 17))
                         .foregroundStyle(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Card {
-                    Text("Take back 30 minutes a day and you get")
+                Card(padding: 18) {
+                    FutureGrid(yearsLeft: math.yearsLeft,
+                               socialYears: goal.yearsAhead,
+                               wonBackYears: yearsBack,
+                               revealed: revealed)
+                    HStack(spacing: 14) {
+                        legend(fill: Theme.accent, "Social media")
+                        legend(fill: Theme.accentSoft, stroke: Theme.accent, "Won back")
+                        legend(stroke: Theme.hairline, "Yours")
+                    }
+                    Text("Each dot is one of your \(math.yearsLeft) years to \(LifeMath.lifeExpectancy).")
+                        .font(.caption)
                         .foregroundStyle(Theme.secondaryText)
-                    Text("\(LifeMath.format(years: math.yearsBack(cuttingMinutes: 30))) years back")
-                        .font(Theme.title(26))
-                        .foregroundStyle(Theme.accent)
                 }
 
-                Text("Assumes the same time every day, starting at \(LifeMath.startAge), and living to \(LifeMath.lifeExpectancy), about the US average.")
+                Card(padding: 18) {
+                    Text("What if you cut back to")
+                        .foregroundStyle(Theme.secondaryText)
+                    Text("\(LifeMath.format(minutes: goalMinutes)) a day?")
+                        .font(Theme.title(24))
+                        .foregroundStyle(Theme.ink)
+                        .contentTransition(.numericText())
+                        .animation(.snappy, value: goalMinutes)
+                    Slider(
+                        value: Binding(get: { Double(goalMinutes) }, set: { goalMinutes = Int($0) }),
+                        in: 0...Double(max(15, math.dailyMinutes)),
+                        step: 5
+                    )
+                    .tint(Theme.accent)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("+\(LifeMath.format(years: yearsBack))")
+                            .font(Theme.bigNumber(34))
+                            .foregroundStyle(Theme.accent)
+                            .contentTransition(.numericText())
+                            .animation(.snappy, value: goalMinutes)
+                        Text("years back")
+                            .font(Theme.title(20))
+                            .foregroundStyle(Theme.ink)
+                    }
+                }
+                .sensoryFeedback(.selection, trigger: goalMinutes)
+
+                if math.daysSoFar > 0 {
+                    Text("So far you've spent about \(math.daysSoFar.formatted()) days on social media since you were \(LifeMath.startAge).")
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text("Assumes the same time every day, starting at \(LifeMath.startAge), and living to \(LifeMath.lifeExpectancy), the US average (CDC, 2024).")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondaryText.opacity(0.8))
             }
@@ -371,53 +405,52 @@ struct YourLifePage: View {
         }
         .task {
             // Fill the grid a few dots at a time.
-            for step in 1...LifeMath.lifeExpectancy {
-                try? await Task.sleep(for: .milliseconds(14))
+            for step in 1...max(1, math.yearsLeft) {
+                try? await Task.sleep(for: .milliseconds(18))
                 revealed = step
             }
         }
     }
 
-    private func legend(_ color: Color, _ label: String) -> some View {
+    private func legend(fill: Color = .clear, stroke: Color = .clear, _ label: String) -> some View {
         HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 10, height: 10)
+            Circle().fill(fill).overlay(Circle().stroke(stroke, lineWidth: 1.5)).frame(width: 11, height: 11)
             Text(label).font(.caption).foregroundStyle(Theme.secondaryText)
         }
     }
 }
 
-/// One dot per year of life. Past years are grey, the part of them spent on social media is
-/// light terracotta, and the years social media will take at this pace are solid terracotta.
-struct LifeGrid: View {
-    var math: LifeMath
+/// One dot per year you have left. Solid green: years social media takes at the "what if" pace.
+/// Light green: years won back by cutting down. Open: the rest.
+struct FutureGrid: View {
+    var yearsLeft: Int
+    var socialYears: Double
+    var wonBackYears: Double
     var revealed: Int
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 10)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 15)
 
     var body: some View {
-        let lived = min(math.age, LifeMath.lifeExpectancy)
-        let spentDots = Int(math.yearsSoFar.rounded())
-        let aheadDots = Int(math.yearsAhead.rounded())
+        let social = Int(socialYears.rounded())
+        let wonBack = Int((socialYears + wonBackYears).rounded()) - social
 
         LazyVGrid(columns: columns, spacing: 5) {
-            ForEach(0..<LifeMath.lifeExpectancy, id: \.self) { year in
-                let fill: Color = {
-                    if year < lived {
-                        return year >= lived - spentDots ? Theme.accentSoft : Theme.muted
-                    }
-                    return year >= LifeMath.lifeExpectancy - aheadDots ? Theme.accent : .clear
-                }()
+            ForEach(0..<yearsLeft, id: \.self) { index in
+                // Fill from the end of life backwards, so the taken years sit together.
+                let fromEnd = yearsLeft - 1 - index
+                let kind: Int = fromEnd < social ? 2 : (fromEnd < social + wonBack ? 1 : 0)
                 Circle()
-                    .fill(fill)
-                    .overlay(Circle().stroke(year < lived ? .clear : Theme.hairline, lineWidth: 1))
+                    .fill(kind == 2 ? Theme.accent : kind == 1 ? Theme.accentSoft : .clear)
+                    .overlay(Circle().stroke(kind == 1 ? Theme.accent : kind == 0 ? Theme.hairline : .clear, lineWidth: 1.5))
                     .aspectRatio(1, contentMode: .fit)
-                    .scaleEffect(year < revealed ? 1 : 0.2)
-                    .opacity(year < revealed ? 1 : 0)
+                    .scaleEffect(index < revealed ? 1 : 0.2)
+                    .opacity(index < revealed ? 1 : 0)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.7), value: kind)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: revealed)
             }
         }
         .accessibilityElement()
-        .accessibilityLabel("\(LifeMath.lifeExpectancy) dots, one per year. \(Int(math.yearsAhead.rounded())) future years go to social media at this pace.")
+        .accessibilityLabel("\(yearsLeft) dots, one per year left. \(social) go to social media, \(wonBack) won back.")
     }
 }
 
@@ -434,6 +467,7 @@ struct HowItWorksPage: View {
                 step(1, "Pick the apps that pull you in.", "They stay locked by default.")
                 step(2, "Say how long, every time.", "5 minutes? 20? You choose before you open anything.")
                 step(3, "When time's up, they lock again.", "Run out of time and you take a short break before the next session.")
+                step(4, "Meet Buddy.", "Keep your promises and Buddy thrives. Break them and Buddy gets smaller and sadder. Only kept promises bring Buddy back.")
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)

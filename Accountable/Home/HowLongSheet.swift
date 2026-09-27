@@ -24,7 +24,7 @@ struct HowLongSheet: View {
                         .foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()
-                Buddy(mood: .curious, size: 46)
+                Buddy(mood: model.state.buddyHealth >= 4 ? .curious : .sad, size: 46, health: model.state.buddyHealth)
             }
             .padding(.top, 28)
 

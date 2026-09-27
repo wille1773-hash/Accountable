@@ -17,12 +17,12 @@ struct ResearchView: View {
         ),
         Finding(
             title: "An hour back, every day",
-            text: "In a large experiment, people paid to deactivate Facebook for four weeks gained about an hour a day, spent more time with friends and family, and reported higher well-being. Many kept using it less afterward.",
+            text: "In an experiment with about 2,700 people, those paid to deactivate Facebook for the four weeks before the 2018 US midterms freed up about 60 minutes a day. They spent more time offline, including with friends and family, and reported small but significant gains in well-being. Many kept using Facebook less afterward.",
             source: "Allcott, Braghieri, Eichmeyer & Gentzkow (2020). The Welfare Effects of Social Media. American Economic Review, 110(3)."
         ),
         Finding(
             title: "Deciding ahead works",
-            text: "A review of 94 studies found that people who planned exactly when and how they would act reached their goals much more often than people who only set a goal. Saying \"15 minutes\" before you open an app is that kind of plan.",
+            text: "A review of 94 studies with over 8,000 people found that planning exactly when and how you will act has a medium-to-large effect on reaching goals, compared with only setting the goal. Saying \"15 minutes\" before you open an app is that kind of plan.",
             source: "Gollwitzer & Sheeran (2006). Implementation Intentions and Goal Achievement: A Meta-analysis. Advances in Experimental Social Psychology, 38."
         ),
     ]

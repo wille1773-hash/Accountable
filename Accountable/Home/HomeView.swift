@@ -97,6 +97,8 @@ private struct LockedStatus: View {
     @EnvironmentObject private var model: AppModel
     @Binding var askingHowLong: Bool
 
+    private var status: BuddyStatus { BuddyStatus(health: model.state.buddyHealth) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .bottom) {
@@ -109,9 +111,9 @@ private struct LockedStatus: View {
                         .foregroundStyle(Theme.ink)
                 }
                 Spacer()
-                Buddy(mood: .neutral, size: 58)
+                Buddy(mood: status.restingMood, size: 64, health: status.health)
             }
-            Text("Holding you to \(model.selectionSummary).")
+            Text(status.line)
                 .foregroundStyle(Theme.secondaryText)
             Button("How long do you want?") { askingHowLong = true }
                 .buttonStyle(.accent)
@@ -154,6 +156,8 @@ private struct SessionStatus: View {
                 .frame(width: 132, height: 132)
 
                 VStack(alignment: .leading, spacing: 6) {
+                    Buddy(mood: model.state.buddyHealth >= 4 ? .happy : .neutral, size: 40, health: model.state.buddyHealth)
+                        .frame(height: 60, alignment: .bottom)
                     Label("Unlocked", systemImage: "lock.open.fill")
                         .font(Theme.label)
                         .foregroundStyle(Theme.accent)
@@ -192,9 +196,13 @@ private struct CooldownStatus: View {
                         .animation(.snappy, value: remaining)
                 }
                 Spacer()
-                Buddy(mood: .sleepy, size: 58)
+                let health = model.state.buddyHealth
+                Buddy(mood: health <= 5 ? .sad : .sleepy, size: 64, health: health)
             }
-            Text("You used the time you asked for. Back at \(backAt.formatted(date: .omitted, time: .shortened)).")
+            Text("That was the time you asked for. Back at \(backAt.formatted(date: .omitted, time: .shortened)).")
+                .foregroundStyle(Theme.secondaryText)
+            Text(BuddyStatus(health: model.state.buddyHealth).line)
+                .font(.footnote)
                 .foregroundStyle(Theme.secondaryText)
             if CooldownPolicy.isEscalating(model.state) {
                 Text("Run out again today and the next break is \(CooldownPolicy.nextMinutes(state: model.state, now: now)) min.")

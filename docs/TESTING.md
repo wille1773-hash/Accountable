@@ -38,7 +38,10 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 - [ ] Settings → Breaks → set steps to 1, 2, 3 min to test quickly. Hit the limit three times in a row: breaks are 1, 2, then 3 min.
 - [ ] Switch to **Same break every time**: every break is the same length.
 
-### 5. Home stats and streak
+### 5. Home stats, streak and Buddy
+- [ ] Buddy hops every so often, and when tapped.
+- [ ] Let two sessions run out: Buddy gets smaller and paler, then sad (worried brows, drooping antenna), and the line under the title changes.
+- [ ] Keep a few promises (tap **I'm done** after at least a minute): Buddy hops and grows back.
 - [ ] End one session early and let one run out: Today shows "1 of 2 promises kept".
 - [ ] Streak shows 0 after a limit hit today; on a clean day it counts up from setup day.
 
