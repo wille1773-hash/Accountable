@@ -49,6 +49,8 @@ struct ResearcherView: View {
                 .disabled(participantID.trimmingCharacters(in: .whitespaces).isEmpty && group != .none)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background.ignoresSafeArea())
         .navigationTitle("Researcher")
         .onAppear {
             guard !loaded else { return }

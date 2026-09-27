@@ -12,6 +12,9 @@ struct AccountableApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { model.refresh() }
                 }
+                #if DEBUG && targetEnvironment(simulator)
+                .task { WidgetSnapshots.renderIfRequested() }
+                #endif
         }
     }
 }

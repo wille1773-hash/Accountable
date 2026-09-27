@@ -39,12 +39,20 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 - [ ] Settings → Breaks → set steps to 1, 2, 3 min to test quickly. Hit the limit three times in a row: breaks are 1, 2, then 3 min.
 - [ ] Switch to **Same break every time**: every break is the same length.
 
-### 5. Home stats, streak and Buddy
+### 5. Home progress and Buddy
+- [ ] "In a row" counts kept promises since the last one that ran out; "Recent" shows the last 10 as dots.
+- [ ] Keeping a promise shows "Promise kept. Buddy perked up." and the mood meter fills a step.
+- [ ] Settings → This week → Your time shows the lifetime projection; after a full day it uses your real average.
 - [ ] Buddy hops every so often, and when tapped.
 - [ ] Let two sessions run out: Buddy gets smaller and paler, then sad (worried brows, drooping antenna), and the line under the title changes.
 - [ ] Keep a few promises (tap **I'm done** after at least a minute): Buddy hops and grows back.
 - [ ] End one session early and let one run out: Today shows "1 of 2 promises kept".
 - [ ] Streak shows 0 after a limit hit today; on a clean day it counts up from setup day.
+
+### Widgets
+- [ ] Long-press the Home Screen → Edit → Add Widget → Accountable. Add small, medium and large.
+- [ ] Buddy's mood and size match the app. Tapping Buddy makes Buddy move.
+- [ ] Start a session: the widgets switch to minutes left. During a break they count down.
 
 ### Unwind
 - [ ] Home shows "Feeling the pull?" (or "While you wait" during a break). It opens breathing, grounding and ideas.

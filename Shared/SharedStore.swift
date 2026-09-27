@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 /// Reads and writes `SharedState` to the App Group.
 ///
@@ -30,6 +33,10 @@ enum SharedStore {
             }
             result = state
         }
+        #if canImport(WidgetKit)
+        // Keep Buddy's widgets in step with the app.
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
         return result
     }
 

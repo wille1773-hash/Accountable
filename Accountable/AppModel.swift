@@ -60,7 +60,8 @@ final class AppModel: ObservableObject {
         SessionEngine.finishIfWindowPassed()
         SessionEngine.logLockoutEndIfNeeded()
         let latest = SharedStore.load()
-        if latest.session != state.session || latest.lockout != state.lockout || latest.days != state.days {
+        if latest.session != state.session || latest.lockout != state.lockout || latest.days != state.days
+            || latest.buddyHealth != state.buddyHealth || latest.recentPromises != state.recentPromises {
             state = latest
         }
         checkAuthorization()
@@ -116,6 +117,10 @@ final class AppModel: ObservableObject {
             state.profile = profile
             state.hasSeenIntro = true
         }
+    }
+
+    func updateProfile(_ change: (inout Profile) -> Void) {
+        state = SharedStore.update { change(&$0.profile) }
     }
 
     func requestAuthorization() async throws {

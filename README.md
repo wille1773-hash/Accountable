@@ -15,9 +15,13 @@ Most screen time apps set a daily cap and let you ignore it. Accountable asks on
 3. **Locked by default.** Selected apps stay shielded until you start a session.
 4. **Say how long.** 5, 10, 15, 30 minutes, or your own number. Only time in those apps counts.
 5. **Keep your word.** When the time's used up, the apps lock again. By default each break that day is longer than the last (3, 10, 30, 60 minutes), resetting at midnight. You can change this in Settings.
-6. **See how you're doing.** Today's promises kept, your streak, and the week at a glance.
-7. **Unwind.** When you feel the pull, or while you wait out a break: guided cyclic sighing and box breathing, a 5-4-3-2-1 grounding exercise, and ideas for something else to do. Nothing here is logged.
-8. **Meet Buddy.** A small robot whose mood follows your promises. Keep them and Buddy grows, brightens and hops around. Break them and Buddy shrinks, fades and droops. Only kept promises (of at least a minute) bring Buddy back.
+6. **See how you're doing, forgivingly.** Promises kept in a row, your last ten promises (old slips roll off as you keep new ones), and minutes per day this week. No permanent score: a good run always wins back a bad stretch.
+7. **Your time.** The lifetime projection from the intro stays in the app. After your first full day it uses your real average from this week, so you can watch the years you're winning back grow.
+8. **Unwind.** When you feel the pull, or while you wait out a break: guided cyclic sighing and box breathing, a 5-4-3-2-1 grounding exercise, and ideas for something else to do. Nothing here is logged.
+9. **Meet Buddy.** A small robot whose mood follows your promises. Keep them and Buddy grows, brightens and hops around, with a mood meter and a "Buddy perked up" moment each time. Break them and Buddy shrinks, fades and droops. Only kept promises (of at least a minute) bring Buddy back.
+10. **Buddy widgets.** Small (Buddy hops in place), medium (Buddy wanders, with your status) and large (Buddy roams a little field above your progress). Tap Buddy to make them hop. iOS doesn't allow continuous animation in widgets, so Buddy moves on each refresh (about every 15 minutes) and on each tap.
+
+![Buddy widgets: thriving, in a session, and low](design/widgets.png)
 
 ## The research behind it
 
@@ -47,6 +51,9 @@ One app, three extensions, and a small shared data layer. No third-party depende
 | `AccountableMonitor` | `DeviceActivityMonitor` extension: re-locks apps when a session's time is used up |
 | `AccountableShield` | `ShieldConfiguration` extension: custom lock screen showing when the app becomes available |
 | `AccountableShieldAction` | `ShieldAction` extension: handles taps on the lock screen buttons |
+| `AccountableWidget` | WidgetKit extension: Buddy widgets in three sizes, tap to hop |
+
+`Shared/` is compiled into every target; `SharedUI/` (theme, Buddy, widget layouts) into the app and the widget.
 
 State is shared between the app and extensions through an App Group (`group.com.wille1773.accountable`).
 

@@ -5,6 +5,8 @@ struct HomeView: View {
     @State private var askingHowLong = false
     @State private var showingSettings = false
     @State private var showingUnwind = false
+    @State private var showingYourTime = false
+    @State private var toast: String?
 
     var body: some View {
         NavigationStack {
@@ -14,10 +16,10 @@ struct HomeView: View {
                     StatusHero(askingHowLong: $askingHowLong)
                     UnwindCard(showing: $showingUnwind)
                     HStack(alignment: .top, spacing: 14) {
-                        TodayCard()
-                        StreakCard()
+                        InARowCard()
+                        RecentCard()
                     }
-                    WeekStrip()
+                    YourTimeCard(showing: $showingYourTime)
                     if DemoMode.isOn { demoNote }
                 }
                 .padding(.horizontal, 20)
@@ -38,6 +40,35 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showingUnwind) {
                 UnwindView()
+            }
+            .sheet(isPresented: $showingYourTime) {
+                YourTimeView()
+            }
+            .overlay(alignment: .top) {
+                if let toast {
+                    Text(toast)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(Theme.accent, in: Capsule())
+                        .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            // A kept promise lifts Buddy's mood: say so, so the recovery is visible.
+            .onChange(of: model.state.buddyHealth) { old, new in
+                guard new != old else { return }
+                let message = new > old ? "Promise kept. Buddy perked up." : "Time ran out. Buddy's a bit down."
+                withAnimation(Theme.spring) { toast = message }
+                Task {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    withAnimation(Theme.spring) { if toast == message { toast = nil } }
+                }
+            }
+            .sensoryFeedback(trigger: model.state.buddyHealth) { old, new in
+                new > old ? .success : .warning
             }
         }
     }
@@ -120,6 +151,7 @@ private struct LockedStatus: View {
             }
             Text(status.line)
                 .foregroundStyle(Theme.secondaryText)
+            MoodMeter(health: status.health)
             Button("How long do you want?") { askingHowLong = true }
                 .buttonStyle(.accent)
                 .padding(.top, 4)
@@ -264,92 +296,132 @@ struct UnwindCard: View {
 
 // MARK: - Stats
 
-/// Today's promises: kept out of made.
-struct TodayCard: View {
+/// Kept promises since the last one that ran out. Always winnable back: one kept promise starts a new run.
+struct InARowCard: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        let today = model.state.days[DayKey.string(for: .now)] ?? DayStats()
+        let count = Progress.keptInARow(model.state)
+        let hasHistory = !model.state.recentPromises.isEmpty
         Card(padding: 18) {
-            Eyebrow("Today")
+            Eyebrow("In a row")
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(today.kept)")
+                Text("\(count)")
                     .font(Theme.bigNumber(40))
                     .foregroundStyle(Theme.ink)
                     .contentTransition(.numericText())
-                Text("/ \(today.made)")
+                    .animation(.snappy, value: count)
+                Text("kept")
                     .font(Theme.title(20))
                     .foregroundStyle(Theme.secondaryText)
             }
-            Text(today.made == 0 ? "No promises yet" : "promises kept")
+            Text(!hasHistory ? "Your first promise starts it" : count == 0 ? "Keep the next one to start again" : "Keep it going")
                 .font(.footnote)
                 .foregroundStyle(Theme.secondaryText)
         }
     }
 }
 
-/// Days in a row with every promise kept.
-struct StreakCard: View {
+/// The last ten promises. Old ones roll off, so a good run replaces a bad stretch.
+struct RecentCard: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        let days = Streak.days(in: model.state)
-        let brokeToday = (model.state.days[DayKey.string(for: .now)]?.limitsHit ?? 0) > 0
+        let recent = Progress.recent(model.state)
+        let kept = recent.filter(\.kept).count
         Card(padding: 18) {
-            Eyebrow("Streak")
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(days)")
-                    .font(Theme.bigNumber(40))
-                    .foregroundStyle(Theme.ink)
-                    .contentTransition(.numericText())
-                Text(days == 1 ? "day" : "days")
-                    .font(Theme.title(20))
-                    .foregroundStyle(Theme.secondaryText)
-            }
-            Text(days > 0 ? "every promise kept" : brokeToday ? "Fresh start tomorrow" : "Keep today's promises")
-                .font(.footnote)
-                .foregroundStyle(Theme.secondaryText)
-        }
-    }
-}
-
-/// The last seven days: a filled dot for a day with every promise kept, an open dot for a day
-/// where time ran out, and a faint dot before you started.
-struct WeekStrip: View {
-    @EnvironmentObject private var model: AppModel
-
-    var body: some View {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: .now)
-        let days = (0..<7).reversed().compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
-        let first = model.state.firstDay.flatMap(DayKey.date(from:)).map { calendar.startOfDay(for: $0) }
-
-        Card(padding: 18) {
-            Eyebrow("This week")
-            HStack {
-                ForEach(days, id: \.self) { day in
-                    let stats = model.state.days[DayKey.string(for: day)]
-                    let started = first.map { day >= $0 } ?? false
-                    VStack(spacing: 8) {
-                        dot(started: started, broken: (stats?.limitsHit ?? 0) > 0)
-                        Text(day.formatted(.dateTime.weekday(.narrow)))
-                            .font(.caption2)
-                            .foregroundStyle(calendar.isDate(day, inSameDayAs: today) ? Theme.ink : Theme.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity)
+            Eyebrow("Recent")
+            if recent.isEmpty {
+                Text("—").font(Theme.bigNumber(40)).foregroundStyle(Theme.hairline)
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(kept)")
+                        .font(Theme.bigNumber(40))
+                        .foregroundStyle(Theme.ink)
+                        .contentTransition(.numericText())
+                    Text("of \(recent.count)")
+                        .font(Theme.title(20))
+                        .foregroundStyle(Theme.secondaryText)
                 }
             }
+            RecentDots(recent: recent.map(\.kept), size: 9)
+                .frame(height: 16, alignment: .leading)
         }
     }
+}
 
-    @ViewBuilder
-    private func dot(started: Bool, broken: Bool) -> some View {
-        if !started {
-            Circle().fill(Theme.hairline).frame(width: 14, height: 14)
-        } else if broken {
-            Circle().stroke(Theme.accent, lineWidth: 2).frame(width: 14, height: 14)
-        } else {
-            Circle().fill(Theme.accent).frame(width: 14, height: 14)
+/// Buddy's mood as ten small segments. Watching it fill back up is the point.
+struct MoodMeter: View {
+    var health: Int
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<10, id: \.self) { i in
+                Capsule()
+                    .fill(i < health ? Theme.accent : Theme.hairline)
+                    .frame(height: 5)
+            }
         }
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: health)
+        .accessibilityElement()
+        .accessibilityLabel("Buddy's mood, \(health) out of 10")
+    }
+}
+
+/// This week's minutes, and a way into the full "Your time" view.
+struct YourTimeCard: View {
+    @EnvironmentObject private var model: AppModel
+    @Binding var showing: Bool
+
+    var body: some View {
+        let week = Progress.week(model.state)
+        Button { showing = true } label: {
+            Card(padding: 18) {
+                HStack {
+                    Eyebrow("This week")
+                    Spacer()
+                    Text("Your time")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Theme.accent)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                }
+                WeekChart(days: week)
+                Text("Minutes on your apps each day. Tap to see what it adds up to over a lifetime.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+                    .multilineTextAlignment(.leading)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct WeekChart: View {
+    var days: [Progress.DayMinutes]
+
+    var body: some View {
+        let top = max(days.map(\.minutes).max() ?? 0, 1)
+        let calendar = Calendar.current
+        HStack(alignment: .bottom, spacing: 8) {
+            ForEach(days) { day in
+                let isToday = calendar.isDateInToday(day.date)
+                VStack(spacing: 6) {
+                    Text(day.minutes > 0 ? "\(day.minutes)" : "")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(Theme.secondaryText)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isToday ? Theme.accent : Theme.accentSoft)
+                        .frame(height: max(4, CGFloat(day.minutes) / CGFloat(top) * 56))
+                    Text(day.date.formatted(.dateTime.weekday(.narrow)))
+                        .font(.caption2)
+                        .foregroundStyle(isToday ? Theme.ink : Theme.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 96, alignment: .bottom)
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: days.map(\.minutes))
     }
 }

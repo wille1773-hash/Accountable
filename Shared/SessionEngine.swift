@@ -104,6 +104,7 @@ enum SessionEngine {
                 state.session = session
                 state.days[DayKey.string(for: now), default: DayStats()].made += 1
             }
+            EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now)
             return session
         }
 
@@ -207,25 +208,33 @@ enum SessionEngine {
             ended = session
             state.session = nil
             let day = DayKey.string(for: session.startedAt)
-            if reason == .authorizationLost || reason == .monitoringLost {
-                // Not the user's doing, so Buddy's mood doesn't change.
-                if reason == .monitoringLost { state.days[day, default: DayStats()].kept += 1 }
-            } else if reason == .limitReached {
+            // A session ended within a minute doesn't count toward Buddy or your record,
+            // so neither can be gamed by starting and stopping right away.
+            let counts = now.timeIntervalSince(session.startedAt) >= DemoMode.minute
+            switch reason {
+            case .authorizationLost, .monitoringLost:
+                // Not the user's doing: no verdict, and Buddy's mood doesn't change.
+                state.days[day, default: DayStats()].minutesUsed += session.usedMinutes
+            case .limitReached:
                 state.buddyHealth = BuddyHealth.clamp(state.buddyHealth - BuddyHealth.brokenLoss)
                 state.days[day, default: DayStats()].limitsHit += 1
+                state.days[day, default: DayStats()].minutesUsed += session.requestedMinutes
+                state.recentPromises.append(PromiseRecord(kept: false, at: now))
                 // Escalation counts limit hits on the calendar day the limit was hit,
                 // so it resets at midnight even if the session started yesterday.
                 state.limitHitsByDay[DayKey.string(for: now), default: 0] += 1
                 let hitsToday = state.limitHitsByDay[DayKey.string(for: now)] ?? 1
                 let minutes = CooldownPolicy.minutes(forHitNumber: hitsToday, state: state)
                 state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * DemoMode.minute), minutes: minutes)
-            } else {
-                // A session ended within a minute doesn't cheer Buddy up, so the mood can't be farmed.
-                if now.timeIntervalSince(session.startedAt) >= DemoMode.minute {
-                    state.buddyHealth = BuddyHealth.clamp(state.buddyHealth + BuddyHealth.keptGain)
-                }
+            case .windowEnded, .userEnded:
                 state.days[day, default: DayStats()].kept += 1
+                state.days[day, default: DayStats()].minutesUsed += session.usedMinutes
+                if counts {
+                    state.buddyHealth = BuddyHealth.clamp(state.buddyHealth + BuddyHealth.keptGain)
+                    state.recentPromises.append(PromiseRecord(kept: true, at: now))
+                }
             }
+            state.recentPromises = Array(state.recentPromises.suffix(Progress.recentLimit))
         }
         guard let session = ended else { return }
 

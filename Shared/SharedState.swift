@@ -29,6 +29,31 @@ struct DayStats: Codable, Equatable {
     var kept = 0
     /// Sessions where the time ran out and the apps had to lock.
     var limitsHit = 0
+    /// Minutes spent in the selected apps during sessions that started this day.
+    /// Since the apps are locked outside sessions, this is the day's total on them.
+    var minutesUsed = 0
+
+    init(made: Int = 0, kept: Int = 0, limitsHit: Int = 0, minutesUsed: Int = 0) {
+        self.made = made
+        self.kept = kept
+        self.limitsHit = limitsHit
+        self.minutesUsed = minutesUsed
+    }
+
+    // Field by field, so days saved by an older version still load.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        made = (try? c.decodeIfPresent(Int.self, forKey: .made)) ?? 0
+        kept = (try? c.decodeIfPresent(Int.self, forKey: .kept)) ?? 0
+        limitsHit = (try? c.decodeIfPresent(Int.self, forKey: .limitsHit)) ?? 0
+        minutesUsed = (try? c.decodeIfPresent(Int.self, forKey: .minutesUsed)) ?? 0
+    }
+}
+
+/// One finished promise, for the "recent promises" row and "kept in a row".
+struct PromiseRecord: Codable, Equatable {
+    var kept: Bool
+    var at: Date
 }
 
 enum StudyGroup: String, Codable, CaseIterable, Identifiable {
@@ -102,6 +127,11 @@ struct SharedState: Codable {
     var buddyHealth = BuddyHealth.start
     /// Names of the pretend apps picked in the Simulator demo.
     var demoApps: [String] = []
+    /// The most recent finished promises, newest last. Old ones roll off, so a run of kept
+    /// promises always wins back a bad stretch.
+    var recentPromises: [PromiseRecord] = []
+    /// Bumped when Buddy is tapped on a widget, to make Buddy hop.
+    var widgetHops = 0
 
     init() {}
 
@@ -122,6 +152,8 @@ struct SharedState: Codable {
         profile = (try? c.decodeIfPresent(Profile.self, forKey: .profile)) ?? Profile()
         buddyHealth = (try? c.decodeIfPresent(Int.self, forKey: .buddyHealth)) ?? BuddyHealth.start
         demoApps = (try? c.decodeIfPresent([String].self, forKey: .demoApps)) ?? []
+        recentPromises = (try? c.decodeIfPresent([PromiseRecord].self, forKey: .recentPromises)) ?? []
+        widgetHops = (try? c.decodeIfPresent(Int.self, forKey: .widgetHops)) ?? 0
     }
 
     var hasSelection: Bool {
