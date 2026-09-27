@@ -11,8 +11,8 @@ struct AccountableWidgets: WidgetBundle {
 
 /// Buddy on your Home Screen.
 ///
-/// Widgets can't play continuous animations, so Buddy moves to a new spot (animated) each time the
-/// widget refreshes, about every 15 minutes, and hops whenever you tap Buddy.
+/// Widgets can't run their own animations, so Buddy's movement is planned ahead as timed frames
+/// (see BuddyChoreography) and iOS animates between them. Tapping Buddy starts a fresh plan with a hop.
 struct BuddyWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "BuddyWidget", provider: BuddyProvider()) { entry in
@@ -20,7 +20,7 @@ struct BuddyWidget: Widget {
                 .containerBackground(Theme.background, for: .widget)
         }
         .configurationDisplayName("Buddy")
-        .description("Buddy hangs out on your Home Screen and shows how you're doing. Tap Buddy for a hop.")
+        .description("Buddy hops around your Home Screen and shows how you're doing. The better you keep your promises, the livelier Buddy gets.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -40,27 +40,41 @@ struct HopIntent: AppIntent {
 // MARK: - Timeline
 
 struct BuddyProvider: TimelineProvider {
+    /// How far ahead to plan Buddy's frames. At the end, iOS asks for a new plan.
+    static let planLength: TimeInterval = 20 * 60
+
     func placeholder(in context: Context) -> BuddyEntry { .preview }
 
     func getSnapshot(in context: Context, completion: @escaping (BuddyEntry) -> Void) {
-        completion(context.isPreview ? .preview : entry(at: .now, beat: SharedStore.load().widgetHops))
+        completion(context.isPreview ? .preview : entry(at: .now, state: SharedStore.load()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<BuddyEntry>) -> Void) {
         let now = Date.now
-        let base = SharedStore.load().widgetHops * 7
-        var dates = (0..<16).map { now.addingTimeInterval(Double($0) * 15 * 60) }
-        // Refresh right when a break ends so the widget doesn't keep counting down at zero.
-        if let lockout = SharedStore.load().lockout, lockout.endsAt > now, lockout.endsAt < dates.last! {
-            dates.append(lockout.endsAt)
-            dates.sort()
+        let state = SharedStore.load()
+        let onBreak = (state.lockout?.endsAt ?? .distantPast) > now
+        var end = now.addingTimeInterval(Self.planLength)
+        // Replan right when a break ends, so Buddy wakes up and the countdown doesn't sit at zero.
+        if onBreak, let breakEnd = state.lockout?.endsAt, breakEnd < end { end = breakEnd }
+
+        let frames = BuddyChoreography.frames(
+            from: now,
+            duration: end.timeIntervalSince(now),
+            energy: BuddyChoreography.energy(health: state.buddyHealth, onBreak: onBreak),
+            startX: Double(state.widgetHops % 5) / 4,
+            seed: UInt64(now.timeIntervalSince1970) &+ UInt64(state.widgetHops)
+        )
+        let base = entry(at: now, state: state)
+        let entries = frames.map { frame -> BuddyEntry in
+            var e = base
+            e.date = frame.date
+            e.pose = frame.pose
+            return e
         }
-        let entries = dates.enumerated().map { index, date in entry(at: date, beat: base + index) }
-        completion(Timeline(entries: entries, policy: .atEnd))
+        completion(Timeline(entries: entries, policy: .after(end)))
     }
 
-    private func entry(at date: Date, beat: Int) -> BuddyEntry {
-        let state = SharedStore.load()
+    private func entry(at date: Date, state: SharedState) -> BuddyEntry {
         let status: BuddyEntry.Status
         if let session = state.session {
             status = .session(requested: session.requestedMinutes, used: session.usedMinutes)
@@ -75,8 +89,7 @@ struct BuddyProvider: TimelineProvider {
             health: state.buddyHealth,
             keptInARow: Progress.keptInARow(state),
             recent: Progress.recent(state).map(\.kept),
-            week: Progress.week(state, now: date).map(\.minutes),
-            beat: beat
+            week: Progress.week(state, now: date).map(\.minutes)
         )
     }
 }
@@ -100,7 +113,7 @@ struct BuddyWidgetView: View {
 } timeline: {
     BuddyEntry.preview
     BuddyEntry(date: .now, status: .cooldown(until: .now.addingTimeInterval(600)), health: 3, keptInARow: 0,
-               recent: [true, false, false], week: [120, 90, 100, 80, 60, 70, 30], beat: 2)
+               recent: [true, false, false], week: [120, 90, 100, 80, 60, 70, 30])
 }
 
 extension BuddyEntry: TimelineEntry {}

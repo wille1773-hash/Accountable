@@ -2,100 +2,93 @@
 
 <img src="Accountable/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="96" alt="Accountable icon" align="right">
 
-An iOS app that helps you spend less time on social media by holding you to the time you choose.
+**A fun, interactive way to take your time back from social media.**
 
-Most screen time apps set a daily cap and let you ignore it. Accountable asks one question every time: **"How long do you want?"** Your apps stay locked until you answer. Then they unlock for exactly that long and lock again when the time's up. Run out of time and you take a short break before the next session.
+## Why I'm building this
 
-> **Status:** v1 code complete. Runs in the Simulator in demo mode; not yet tested on a device. See [Roadmap](#roadmap).
+I watched social media take over my life, and the lives of the people around me. "Five minutes" of scrolling would turn into an hour, then a whole evening, then a habit nobody really chose. The apps are built to keep you there, and the usual fixes didn't help: a daily screen time limit is easy to ignore with one tap, and deleting the apps never lasted.
+
+I wanted something that works *with* how people actually are. It shouldn't lecture you or shame you. It should hold you to the promise you make to yourself, and make keeping that promise feel good. So I built Accountable to hold me accountable, and my friends too.
+
+## The idea
+
+Before you open TikTok or Instagram, Accountable asks one question: **"How long do you want?"**
+
+- Your apps stay **locked by default**. To use them, you say how long, and you mean it.
+- They unlock for **exactly that long**, then lock again when the time's up.
+- Run out of time and you take a short break before the next session. Keep running out and the breaks get longer.
+- **Buddy**, a small green robot, keeps you company. Keep your promises and Buddy thrives, hopping around and growing. Break them and Buddy gets smaller and sadder. The only way to cheer Buddy up is to keep your word.
+
+Deciding in advance, instead of scrolling until you notice, is the whole point. Research shows it works.
 
 ## How it works
 
-1. **A short intro.** Three research findings, then your own numbers: how many of your remaining years social media is on track to take if nothing changes, then a slider to see how many you'd win back by cutting down. Years left come from the CDC's 2023 US life tables for your exact age.
-2. **Pick your apps.** Grant Screen Time access and choose the apps that pull you in, using Apple's picker.
-3. **Locked by default.** Selected apps stay shielded until you start a session.
-4. **Say how long.** 5, 10, 15, 30 minutes, or your own number. Only time in those apps counts.
-5. **Keep your word.** When the time's used up, the apps lock again. By default each break that day is longer than the last (3, 10, 30, 60 minutes), resetting at midnight. You can change this in Settings.
-6. **See how you're doing, forgivingly.** Promises kept in a row, your last ten promises (old slips roll off as you keep new ones), and minutes per day this week. No permanent score: a good run always wins back a bad stretch.
-7. **Your time.** The lifetime projection from the intro stays in the app. After your first full day it uses your real average from this week, so you can watch the years you're winning back grow.
-8. **Unwind.** When you feel the pull, or while you wait out a break: guided cyclic sighing and box breathing, a 5-4-3-2-1 grounding exercise, and ideas for something else to do. Nothing here is logged.
-9. **Meet Buddy.** A small robot whose mood follows your promises. Keep them and Buddy grows, brightens and hops around, with a mood meter and a "Buddy perked up" moment each time. Break them and Buddy shrinks, fades and droops. Only kept promises (of at least a minute) bring Buddy back.
-10. **Buddy widgets.** Small (Buddy hops in place), medium (Buddy wanders, with your status) and large (Buddy roams a little field above your progress). Tap Buddy to make them hop. iOS doesn't allow continuous animation in widgets, so Buddy moves on each refresh (about every 15 minutes) and on each tap.
+1. **See what's at stake.** A short intro walks through what the research says, then asks how much time you spend on social media. It shows how many years of your life that adds up to, and how many you could win back.
+2. **Pick your apps.** Choose the apps that pull you in, using Apple's Screen Time picker.
+3. **Say how long, every time.** 5, 10, 15, 30 minutes, or your own number. Only time actually spent in those apps counts.
+4. **Keep your word.** When the time's up, the apps lock. A notification lets you know a minute before.
+5. **Watch yourself improve.** Promises kept in a row, your last ten promises, and minutes per day this week. There's no permanent score: a good run always wins back a bad stretch.
+6. **Your time.** Once you have a few days of data, the lifetime projection updates with your real average, so you can watch the years you're winning back grow.
+7. **Unwind.** When you feel the pull, or while you wait out a break: guided breathing, a quick grounding exercise, and ideas for something better to do.
+8. **Buddy on your Home Screen.** Widgets in three sizes where Buddy hops around, blinks, and shows how you're doing. Tap Buddy to make him jump.
 
-![Buddy widgets: thriving, in a session, and low](design/widgets.png)
+![Buddy widgets: thriving, in a session, and having a rough time](design/widgets.png)
 
 ## The research behind it
 
-- **Less scrolling, less lonely.** Students who limited social media to about 30 minutes a day felt significantly less lonely and depressed within three weeks. *Hunt et al., Journal of Social and Clinical Psychology, 2018.*
-- **An hour back, every day.** People paid to deactivate Facebook for four weeks freed up about 60 minutes a day and reported small but significant gains in well-being. *Allcott et al., American Economic Review, 2020.*
-- **Breathing helps.** Five minutes a day of cyclic sighing improved mood and lowered stress more than mindfulness meditation in a randomized study. *Balban et al., Cell Reports Medicine, 2023.*
-- **Deciding ahead works.** Across 94 studies, deciding exactly when and how you'll act made people much more likely to follow through. *Gollwitzer & Sheeran, Advances in Experimental Social Psychology, 2006.*
+- **Less scrolling, less lonely.** University of Pennsylvania students who limited social media to about 30 minutes a day felt significantly less lonely and depressed within three weeks. *Hunt et al., Journal of Social and Clinical Psychology, 2018.*
+- **An hour back, every day.** People paid to deactivate Facebook for four weeks freed up about 60 minutes a day, spent more time offline with friends and family, and reported small but significant gains in well-being. *Allcott et al., American Economic Review, 2020.*
+- **Deciding ahead works.** Across 94 studies, planning exactly when and how you'll act had a medium-to-large effect on reaching goals. *Gollwitzer & Sheeran, Advances in Experimental Social Psychology, 2006.*
+- **Breathing helps.** Five minutes a day of cyclic sighing improved mood and lowered stress more than mindfulness meditation. *Balban et al., Cell Reports Medicine, 2023.*
+- Lifetime projections use remaining life expectancy by age from the *CDC/NCHS United States Life Tables, 2023*.
 
 ## Privacy
 
-- **Everything stays on your phone.** No backend, no accounts, no analytics.
-- **We can't see your apps.** Screen Time gives Accountable anonymous tokens, not app names, and nothing about what you do inside them.
+- **Everything stays on your phone.** No accounts, no servers, no analytics.
+- **We can't see your apps.** Apple's Screen Time gives Accountable anonymous tokens, not app names, and nothing about what you do inside them.
 
 ## Research study mode
 
-Accountable is also used in a separate 4-week University of Florida study comparing flat and escalating breaks. That study is run independently of the app. Regular users never see it, and nothing is logged for them.
+Accountable is also being used in a separate 4-week University of Florida study comparing fixed-length breaks with breaks that grow longer. The study runs independently of the app; regular users never see it, and nothing is logged for them.
 
-A researcher enables study mode on a participant's phone from a hidden screen, entering a participant ID and group. The participant then sees a consent screen, and only after they agree does the app keep a local event log. The log has sessions, limits and breaks, never app names or content. It leaves the phone only if the participant exports it as a CSV.
+A researcher enables study mode from a hidden screen by entering a participant ID and group. The participant then sees a consent screen, and only after they agree does the app keep a local log. The log records sessions, limits and breaks, never app names or content, and it leaves the phone only if the participant exports it as a CSV.
 
-## Architecture
+## Built with
 
-One app, three extensions, and a small shared data layer. No third-party dependencies.
+Swift and SwiftUI. No third-party packages.
 
 | Target | Role |
 |---|---|
-| `Accountable` | Main SwiftUI app: intro, app picker, "How long?" flow, home screen, settings, study mode |
+| `Accountable` | The app: intro, app picker, "How long?" flow, home, Your time, Unwind, settings, study mode |
 | `AccountableMonitor` | `DeviceActivityMonitor` extension: re-locks apps when a session's time is used up |
-| `AccountableShield` | `ShieldConfiguration` extension: custom lock screen showing when the app becomes available |
+| `AccountableShield` | `ShieldConfiguration` extension: the custom lock screen |
 | `AccountableShieldAction` | `ShieldAction` extension: handles taps on the lock screen buttons |
-| `AccountableWidget` | WidgetKit extension: Buddy widgets in three sizes, tap to hop |
+| `AccountableWidget` | WidgetKit extension: Buddy widgets |
 
-`Shared/` is compiled into every target; `SharedUI/` (theme, Buddy, widget layouts) into the app and the widget.
+`Shared/` is compiled into every target; `SharedUI/` (theme, Buddy, widget layouts) into the app and the widget. Targets share state through an App Group.
 
-State is shared between the app and extensions through an App Group (`group.com.wille1773.accountable`).
-
-**Frameworks:** [FamilyControls](https://developer.apple.com/documentation/familycontrols) (individual authorization), [ManagedSettings](https://developer.apple.com/documentation/managedsettings) (shields), [DeviceActivity](https://developer.apple.com/documentation/deviceactivity) (usage tracking).
+**Apple frameworks:** [FamilyControls](https://developer.apple.com/documentation/familycontrols), [ManagedSettings](https://developer.apple.com/documentation/managedsettings), [DeviceActivity](https://developer.apple.com/documentation/deviceactivity), [WidgetKit](https://developer.apple.com/documentation/widgetkit).
 
 ### Platform notes
 
-- Device activity schedules must be at least 15 minutes long. Session limits use usage thresholds within a longer schedule, and cooldowns are enforced in the app, so short sessions and cooldowns still work.
-- Opening Accountable directly from the lock screen requires iOS 26.5 or later. Earlier versions fall back to a notification that opens the app.
-- Screen Time APIs do not work in the iOS Simulator. There the app runs a **demo mode**: no real locking, and a fast clock (1 minute = 2 seconds) so you can watch sessions and breaks play out. Real testing requires a physical device.
+- Screen Time schedules must be at least 15 minutes, so a session's limit is a usage threshold inside a longer window. Short sessions and breaks still work.
+- Opening Accountable straight from the lock screen needs iOS 26.5 or later; earlier versions get a notification instead.
+- Widgets can't run their own animations. Buddy's hops and blinks are planned ahead as timed frames, about one per second, and iOS animates between them.
+- Screen Time doesn't work in the iOS Simulator. There the app runs a **demo mode** with pretend apps and a fast clock (1 minute = 2 seconds), so every screen can be tried.
 
-## Requirements
+## Running it
 
-- iOS 17.0 or later
-- Xcode 26.3 or later
-- A physical iPhone
-- An Apple Developer account with the Family Controls capability. Distribution through TestFlight or the App Store requires Apple's approval of the Family Controls distribution entitlement.
+**Requirements:** iOS 17+, Xcode 26.3+, an iPhone, and a paid Apple Developer account (free Personal Teams can't use Family Controls on a device).
 
-## Getting started
+1. Clone the repo and open `Accountable.xcodeproj`.
+2. For each target, open **Signing & Capabilities** and choose your team.
+3. Turn on Developer Mode on your iPhone (Settings → Privacy & Security), then run the `Accountable` scheme.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/wille1773-hash/Accountable.git
-   ```
-2. Open `Accountable.xcodeproj` in Xcode.
-3. For each of the four targets, open **Signing & Capabilities**, select your development team, and confirm that **Family Controls** and the App Group are enabled.
-4. Connect your iPhone, enable Developer Mode (Settings → Privacy & Security → Developer Mode), and run the `Accountable` scheme.
+Or just press Run with a Simulator selected to try the demo. See [docs/TESTING.md](docs/TESTING.md) for a full test checklist.
 
-A paid Apple Developer Program team is required: free Personal Teams can't use Family Controls on a device. See [docs/TESTING.md](docs/TESTING.md) for a step-by-step test checklist.
+## Status
 
-## Roadmap
-
-All milestones are written and build cleanly. None has been tested on a device yet; see [docs/TESTING.md](docs/TESTING.md).
-
-- [x] 1. Project setup, App Group, extension targets, Screen Time authorization, app picker
-- [x] 2. Default shielding of selected apps and custom shield screen
-- [x] 3. "How long?" flow: unlock, track usage, re-lock at the limit
-- [x] 4. Cooldowns with flat and escalating modes
-- [x] 5. Home screen stats and streak
-- [x] 6. Study mode: consent, participant ID, group assignment, event logging, CSV export
-- [x] 7. Edge cases: restart mid-session, midnight rollover, revoked permission, changed app selection
-- [ ] On-device testing
+The app is feature-complete, and every screen has been tested in the Simulator. Next up is testing on a real iPhone: the Screen Time locking, usage tracking and lock screen only work there.
 
 ## Author
 

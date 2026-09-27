@@ -12,11 +12,11 @@ enum WidgetSnapshots {
 
         let thriving = BuddyEntry(date: .now, status: .locked, health: 9, keptInARow: 6,
                                   recent: [true, false, true, true, true, true, true, true],
-                                  week: [110, 95, 80, 60, 55, 40, 30], beat: 1)
+                                  week: [110, 95, 80, 60, 55, 40, 30], pose: BuddyPose(x: 0.8, lift: 1, tilt: 7))
         let session = BuddyEntry(date: .now, status: .session(requested: 15, used: 6), health: 7, keptInARow: 3,
-                                 recent: [false, true, true, true], week: [120, 100, 90, 70, 60, 50, 35], beat: 2)
+                                 recent: [false, true, true, true], week: [120, 100, 90, 70, 60, 50, 35], pose: BuddyPose(x: 0.2, eyesClosed: true))
         let low = BuddyEntry(date: .now, status: .cooldown(until: .now.addingTimeInterval(540)), health: 2, keptInARow: 0,
-                             recent: [true, false, false, true, false], week: [60, 90, 120, 140, 130, 150, 80], beat: 3)
+                             recent: [true, false, false, true, false], week: [60, 90, 120, 140, 130, 150, 80], pose: BuddyPose(x: 0.5))
 
         let sizes: [(String, WidgetSizeClass, CGSize)] = [
             ("small", .small, CGSize(width: 170, height: 170)),

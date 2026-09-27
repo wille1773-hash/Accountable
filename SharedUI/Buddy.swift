@@ -22,6 +22,8 @@ struct Buddy: View {
     var size: CGFloat = 88
     /// 0...10. Scales Buddy from 70% to 100% and fades the color when low.
     var health: Int = 10
+    /// Forces a blink. Widgets use this, since they can't run Buddy's own blink timer.
+    var eyesClosed = false
 
     @State private var blinking = false
     @State private var breathing = false
@@ -126,12 +128,12 @@ struct Buddy: View {
                     .rotationEffect(.degrees(left ? -20 : 20))
                 Capsule()
                     .fill(featureColor)
-                    .frame(width: eyeW, height: blinking ? w * 0.03 : w * 0.11)
+                    .frame(width: eyeW, height: (blinking || eyesClosed) ? w * 0.03 : w * 0.11)
             }
         case .neutral, .curious:
             Capsule()
                 .fill(featureColor)
-                .frame(width: eyeW, height: blinking ? w * 0.03 : w * 0.18)
+                .frame(width: eyeW, height: (blinking || eyesClosed) ? w * 0.03 : w * 0.18)
         }
     }
 

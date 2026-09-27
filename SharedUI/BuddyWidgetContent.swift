@@ -14,14 +14,25 @@ struct BuddyEntry {
     var keptInARow: Int
     var recent: [Bool]
     var week: [Int]
-    /// Changes on every refresh and every tap; decides where Buddy is standing.
-    var beat: Int
+    /// Where Buddy is and what Buddy's doing in this frame.
+    var pose = BuddyPose()
 
     static let preview = BuddyEntry(
         date: .now, status: .locked, health: 8, keptInARow: 4,
         recent: [true, true, false, true, true, true, true],
-        week: [95, 80, 60, 70, 45, 40, 25], beat: 1
+        week: [95, 80, 60, 70, 45, 40, 25]
     )
+}
+
+/// One frame of Buddy's widget animation.
+struct BuddyPose: Equatable {
+    /// Across the available space, 0 (left) to 1 (right).
+    var x = 0.5
+    /// Height of a hop, 0 (on the ground) to 1 (top of the hop).
+    var lift = 0.0
+    var eyesClosed = false
+    /// Slight lean in degrees, into the direction of travel.
+    var tilt = 0.0
 }
 
 enum WidgetSizeClass { case small, medium, large }
@@ -59,18 +70,30 @@ struct BuddyWidgetContent: View {
     }
 
     private func tappableBuddy(size: CGFloat) -> some View {
-        wrapBuddy(AnyView(Buddy(mood: mood, size: size, health: entry.health)))
+        wrapBuddy(AnyView(Buddy(mood: mood, size: size, health: entry.health, eyesClosed: entry.pose.eyesClosed)))
     }
 
-    /// Small: Buddy hops in place.
+    /// Buddy placed in `area`, standing on its bottom edge, hopping `hop` points high at the top of a jump.
+    /// Buddy's frame is bottom-aligned, so the frame's bottom is where the feet are.
+    private func roamingBuddy(size: CGFloat, in area: CGSize, hop: CGFloat) -> some View {
+        let frameW = size * 1.3, frameH = size * 1.55
+        let usable = max(0, area.width - frameW)
+        let pose = entry.pose
+        return tappableBuddy(size: size)
+            .frame(width: frameW, height: frameH, alignment: .bottom)
+            .rotationEffect(.degrees(pose.tilt), anchor: .bottom)
+            .position(x: frameW / 2 + usable * pose.x,
+                      y: area.height - frameH / 2 - hop * pose.lift)
+            // The spring between frames is what makes it read as a hop rather than a jump cut.
+            .animation(.spring(response: 0.42, dampingFraction: 0.62), value: pose)
+    }
+
+    /// Small: Buddy hops around the space above the status line.
     private var small: some View {
         VStack(spacing: 6) {
-            Spacer(minLength: 0)
-            tappableBuddy(size: 58)
-                .offset(y: entry.beat.isMultiple(of: 2) ? 0 : -10)
-                .rotationEffect(.degrees(entry.beat % 3 == 0 ? -4 : entry.beat % 3 == 1 ? 4 : 0))
-                .animation(.spring(response: 0.45, dampingFraction: 0.45), value: entry.beat)
-            Spacer(minLength: 0)
+            GeometryReader { geo in
+                roamingBuddy(size: 50, in: geo.size, hop: 18)
+            }
             statusLine
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
@@ -78,15 +101,11 @@ struct BuddyWidgetContent: View {
         }
     }
 
-    /// Medium: Buddy wanders side to side, with your status.
+    /// Medium: Buddy hops around the left half, with your status on the right.
     private var medium: some View {
         HStack(spacing: 12) {
             GeometryReader { geo in
-                let spots: [CGFloat] = [0.3, 0.7, 0.5, 0.2, 0.8]
-                tappableBuddy(size: 56)
-                    .position(x: geo.size.width * spots[entry.beat % spots.count],
-                              y: geo.size.height * (entry.beat.isMultiple(of: 2) ? 0.62 : 0.52))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.55), value: entry.beat)
+                roamingBuddy(size: 54, in: geo.size, hop: 24)
             }
             VStack(alignment: .leading, spacing: 6) {
                 statusLine.font(.subheadline.weight(.semibold))
@@ -101,26 +120,18 @@ struct BuddyWidgetContent: View {
     private var large: some View {
         VStack(alignment: .leading, spacing: 12) {
             GeometryReader { geo in
-                // Horizontal spot, and how high Buddy is hopping (0 = standing on the ground).
-                let spots: [(x: CGFloat, lift: CGFloat)] = [
-                    (0.22, 0), (0.7, 22), (0.5, 0), (0.82, 0), (0.15, 16), (0.6, 0),
-                ]
-                let spot = spots[entry.beat % spots.count]
-                let groundY = geo.size.height * 0.86
-                ZStack {
+                ZStack(alignment: .topLeading) {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(Theme.card)
                     // A soft ground line for Buddy to stand on.
                     Capsule()
                         .fill(Theme.hairline)
-                        .frame(height: 3)
-                        .padding(.horizontal, 14)
-                        .position(x: geo.size.width / 2, y: groundY)
-                    // Buddy's frame is bottom-aligned, so its bottom edge is where the feet are.
-                    tappableBuddy(size: 60)
-                        .frame(height: 93, alignment: .bottom)
-                        .position(x: geo.size.width * spot.x, y: groundY - 93 / 2 - spot.lift)
-                        .animation(.spring(response: 0.7, dampingFraction: 0.55), value: entry.beat)
+                        .frame(width: geo.size.width - 28, height: 3)
+                        .position(x: geo.size.width / 2, y: geo.size.height - 14)
+                    roamingBuddy(size: 60,
+                                 in: CGSize(width: geo.size.width - 28, height: geo.size.height - 15),
+                                 hop: 40)
+                        .offset(x: 14)
                 }
             }
             .frame(height: 150)
