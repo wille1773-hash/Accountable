@@ -268,6 +268,7 @@ enum SessionEngine {
                 state.days[day, default: DayStats()].minutesUsed += session.requestedMinutes
                 if counts {
                     state.buddyHealth = BuddyHealth.clamp(state.buddyHealth + BuddyHealth.keptGain)
+                    state.keptStreak = Progress.keptInARow(state) + 1
                     state.recentPromises.append(PromiseRecord(kept: true, at: now))
                 }
                 // Escalation counts limit hits on the calendar day the limit was hit,
@@ -281,6 +282,7 @@ enum SessionEngine {
                 state.days[day, default: DayStats()].minutesUsed += session.usedMinutes
                 if counts {
                     state.buddyHealth = BuddyHealth.clamp(state.buddyHealth + BuddyHealth.keptGain)
+                    state.keptStreak = Progress.keptInARow(state) + 1
                     state.recentPromises.append(PromiseRecord(kept: true, at: now))
                 }
             }
@@ -321,6 +323,7 @@ enum SessionEngine {
             ended = lockout
             state.lockout = nil
             state.buddyHealth = BuddyHealth.clamp(state.buddyHealth - BuddyHealth.brokenLoss - BuddyHealth.keptGain)
+            state.keptStreak = 0
             if let last = state.recentPromises.indices.last, state.recentPromises[last].kept {
                 state.recentPromises[last].kept = false
             } else {

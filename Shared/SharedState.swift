@@ -161,6 +161,9 @@ struct SharedState: Codable {
     /// The most recent finished promises, newest last. Old ones roll off, so a run of kept
     /// promises always wins back a bad stretch.
     var recentPromises: [PromiseRecord] = []
+    /// Promises kept since the last broken one. Counted separately because `recentPromises` only
+    /// holds the last few. Nil in data saved before this existed (see Progress.keptInARow).
+    var keptStreak: Int?
     /// Bumped when Buddy is tapped on a widget, to make Buddy hop.
     var widgetHops = 0
     /// Set when someone picks "Custom time…" on the lock screen, so the app opens to the time picker.
@@ -186,6 +189,7 @@ struct SharedState: Codable {
         buddyHealth = (try? c.decodeIfPresent(Int.self, forKey: .buddyHealth)) ?? BuddyHealth.start
         demoApps = (try? c.decodeIfPresent([String].self, forKey: .demoApps)) ?? []
         recentPromises = (try? c.decodeIfPresent([PromiseRecord].self, forKey: .recentPromises)) ?? []
+        keptStreak = try? c.decodeIfPresent(Int.self, forKey: .keptStreak)
         widgetHops = (try? c.decodeIfPresent(Int.self, forKey: .widgetHops)) ?? 0
         wantsCustomTime = (try? c.decodeIfPresent(Bool.self, forKey: .wantsCustomTime)) ?? false
     }

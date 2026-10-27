@@ -10,6 +10,8 @@ enum Progress {
 
     /// Promises kept since the last one that ran out of time.
     static func keptInARow(_ state: SharedState) -> Int {
+        if let streak = state.keptStreak { return streak }
+        // Saved before the streak was counted separately: count back through what's remembered.
         var count = 0
         for record in state.recentPromises.reversed() {
             guard record.kept else { break }
