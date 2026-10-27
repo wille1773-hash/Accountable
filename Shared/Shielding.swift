@@ -40,10 +40,6 @@ enum Shielding {
         "reddit.com", "www.reddit.com",
         "snapchat.com", "www.snapchat.com",
         "threads.net", "www.threads.net", "threads.com", "www.threads.com",
-        // Where photos and videos come from. Blocking these stops a page that was already open
-        // when time ran out from loading anything new.
-        "cdninstagram.com", "fbcdn.net", "googlevideo.com", "ytimg.com", "i.ytimg.com",
-        "tiktokcdn.com", "tiktokv.com", "redd.it", "i.redd.it", "v.redd.it", "sc-cdn.net",
     ]
 
     /// Turns the social media website block on or off.
