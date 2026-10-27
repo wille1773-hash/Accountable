@@ -134,6 +134,7 @@ enum SessionEngine {
             state.days[DayKey.string(for: now), default: DayStats()].made += 1
         }
         Shielding.lock(state.selection, except: opening)
+        Shielding.filterSocialSites(false)
         EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now)
         return session
     }
@@ -290,6 +291,7 @@ enum SessionEngine {
 
         if !DemoMode.isOn {
             Shielding.lock(state.selection)
+            Shielding.filterSocialSites(state.blocksSocialSites)
             DeviceActivityCenter().stopMonitoring([.session(session.id)])
         }
         switch reason {

@@ -29,6 +29,15 @@ enum Shielding {
         store.shield.webDomainCategories = categories.isEmpty ? nil : .specific(categories, except: opened.webDomains)
     }
 
+    /// Sites blocked by `filterSocialSites`. The filter is Apple's web content filter, so it applies
+    /// to web pages in every app, not just Safari.
+    static let socialSites = ["instagram.com", "www.instagram.com", "youtube.com", "www.youtube.com", "m.youtube.com"]
+
+    /// Turns the Instagram and YouTube website block on or off.
+    static func filterSocialSites(_ on: Bool) {
+        store.webContent.blockedByFilter = on ? .specific(Set(socialSites.map { WebDomain(domain: $0) })) : nil
+    }
+
     /// Removes every setting Accountable has applied.
     static func clearAll() {
         store.clearAllSettings()

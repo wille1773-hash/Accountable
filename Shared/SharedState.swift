@@ -165,6 +165,9 @@ struct SharedState: Codable {
     var widgetHops = 0
     /// Set when someone picks "Custom time…" on the lock screen, so the app opens to the time picker.
     var wantsCustomTime = false
+    /// Also block the Instagram and YouTube websites in every app while locked, which covers apps
+    /// like SocialLite that show those sites inside themselves and can't be locked directly.
+    var blocksSocialSites = false
 
     init() {}
 
@@ -188,6 +191,7 @@ struct SharedState: Codable {
         recentPromises = (try? c.decodeIfPresent([PromiseRecord].self, forKey: .recentPromises)) ?? []
         widgetHops = (try? c.decodeIfPresent(Int.self, forKey: .widgetHops)) ?? 0
         wantsCustomTime = (try? c.decodeIfPresent(Bool.self, forKey: .wantsCustomTime)) ?? false
+        blocksSocialSites = (try? c.decodeIfPresent(Bool.self, forKey: .blocksSocialSites)) ?? false
     }
 
     var hasSelection: Bool {

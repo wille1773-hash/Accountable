@@ -92,6 +92,7 @@ final class AppModel: ObservableObject {
     private func reassertLock() {
         guard !DemoMode.isOn, isAuthorized, state.hasCompletedSetup, state.session == nil else { return }
         Shielding.lock(state.selection)
+        Shielding.filterSocialSites(state.blocksSocialSites)
     }
 
     /// Notices Screen Time access being turned off (in Settings) or back on, and logs it.
@@ -220,6 +221,12 @@ final class AppModel: ObservableObject {
     }
 
     // MARK: Settings
+
+    func setBlocksSocialSites(_ on: Bool) {
+        state = SharedStore.update { $0.blocksSocialSites = on }
+        guard !DemoMode.isOn else { return }
+        Shielding.filterSocialSites(on && state.session == nil)
+    }
 
     func updateCooldown(_ settings: CooldownSettings) {
         state = SharedStore.update { $0.cooldown = settings }
