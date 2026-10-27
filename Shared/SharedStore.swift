@@ -26,6 +26,9 @@ enum SharedStore {
             SharedKeychain.write(data, for: key)
         }
         SharedKeychain.lock.unlock()
+        // Tell the lock screen, which can't read this (see LockScreenState). Widgets can't change
+        // Screen Time settings and never change the session or break anyway.
+        if Bundle.main.bundleIdentifier?.hasSuffix(".Widget") != true { LockScreenState.publish(state) }
         #if canImport(WidgetKit)
         // Keep Buddy's widgets in step with the app.
         WidgetCenter.shared.reloadAllTimelines()

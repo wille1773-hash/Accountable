@@ -24,11 +24,11 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     }
 
     private func makeConfiguration() -> ShieldConfiguration {
-        let state = SharedStore.load()
-        let now = Date.now
-        let onBreak = (state.lockout?.endsAt ?? .distantPast) > now
-        let session = state.session.flatMap { $0.windowEnd > now ? $0 : nil }
-        let copy = ShieldCopy.make(lockout: state.lockout, session: session, now: now)
+        // Read from Screen Time settings, since this extension can't read the saved state.
+        let mode = LockScreenState.read()
+        let copy = ShieldCopy.make(mode)
+        let onBreak = if case .onBreak = mode { true } else { false }
+        let inSession = if case .session = mode { true } else { false }
         // Match the app's Light, Dark or Auto setting (see ShieldAppearance).
         ShieldCopy.style = switch ShieldAppearance.current() {
         case .light: .light
@@ -39,13 +39,13 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         // Study log: "app opened while locked". iOS may call this more than once per open or reuse
         // an earlier result, so treat these counts as approximate. Just opening the app doesn't
         // break a promise; choosing "Unlock anyway" does.
-        EventLog.append(.shieldShown, detail: ShieldCopy.context(lockout: state.lockout, session: session, now: now))
+        EventLog.append(.shieldShown, detail: ShieldCopy.context(mode))
 
         let icon = UIImage(systemName: copy.symbol)?.withTintColor(ShieldCopy.accent, renderingMode: .alwaysOriginal)
         let title = ShieldConfiguration.Label(text: copy.title, color: ShieldCopy.ink)
         let subtitle = ShieldConfiguration.Label(text: copy.subtitle, color: ShieldCopy.secondary)
 
-        if session != nil {
+        if inSession {
             // The session's time is shared: spend some of it here, or not.
             return ShieldConfiguration(
                 backgroundBlurStyle: ShieldCopy.blur,
@@ -126,33 +126,35 @@ enum ShieldCopy {
     }
 
     /// "session" if a session is running, "cooldown" if a break is, otherwise "locked".
-    static func context(lockout: Lockout?, session: ActiveSession?, now: Date) -> String {
-        if session != nil { return "session" }
-        if let lockout, lockout.endsAt > now { return "cooldown" }
-        return "locked"
+    static func context(_ mode: LockScreenState) -> String {
+        switch mode {
+        case .session: "session"
+        case .onBreak: "cooldown"
+        case .locked: "locked"
+        }
     }
 
-    static func make(lockout: Lockout?, session: ActiveSession?, now: Date) -> Text {
-        if let session {
-            let left = max(1, session.requestedMinutes - session.usedMinutes)
+    static func make(_ mode: LockScreenState) -> Text {
+        switch mode {
+        case .session(let left):
             return Text(
                 symbol: "timer",
                 title: "About \(left) min left",
-                subtitle: "Your \(session.requestedMinutes) minutes are shared across your apps. Spend some of them here?"
+                subtitle: "Your timer is shared across your apps. Spend some of it here?"
             )
-        }
-        if let lockout, lockout.endsAt > now {
-            let time = lockout.endsAt.formatted(date: .omitted, time: .shortened)
+        case .onBreak(let until):
+            let time = until.formatted(date: .omitted, time: .shortened)
             return Text(
                 symbol: "hourglass",
                 title: "Taking a breather",
                 subtitle: "You kept your word. Back at \(time). Unlocking before then breaks your promise, and Buddy will be sad."
             )
+        case .locked:
+            return Text(
+                symbol: "lock",
+                title: "Resting for now",
+                subtitle: "How long do you want? Say it and mean it. It locks again when the time's up."
+            )
         }
-        return Text(
-            symbol: "lock",
-            title: "Resting for now",
-            subtitle: "How long do you want? Say it and mean it. It locks again when the time's up."
-        )
     }
 }

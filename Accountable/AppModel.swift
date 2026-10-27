@@ -244,6 +244,7 @@ final class AppModel: ObservableObject {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
         SharedKeychain.removeAll()
+        LockScreenState.publish(SharedState())
         authorizationMisses = 0
         state = SharedStore.load()
     }
