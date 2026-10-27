@@ -17,13 +17,18 @@ struct ResearchView: View {
         ),
         Finding(
             title: "An hour back, every day",
-            text: "In an experiment with about 2,700 people, those paid to deactivate Facebook for the four weeks before the 2018 US midterms freed up about 60 minutes a day. They spent more time offline, including with friends and family, and reported small but significant gains in well-being. Many kept using Facebook less afterward.",
+            text: "In a large randomized experiment, people paid to deactivate Facebook for the four weeks before the 2018 US midterms freed up about 60 minutes a day. They spent more time offline, including with friends and family, and reported small but significant gains in well-being. Many kept using Facebook less afterward.",
             source: "Allcott, Braghieri, Eichmeyer & Gentzkow (2020). The Welfare Effects of Social Media. American Economic Review, 110(3)."
         ),
         Finding(
             title: "Deciding ahead works",
             text: "A review of 94 studies with over 8,000 people found that planning exactly when and how you will act has a medium-to-large effect on reaching goals, compared with only setting the goal. Saying \"15 minutes\" before you open an app is that kind of plan.",
             source: "Gollwitzer & Sheeran (2006). Implementation Intentions and Goal Achievement: A Meta-analysis. Advances in Experimental Social Psychology, 38."
+        ),
+        Finding(
+            title: "Breathing helps",
+            text: "In a month-long randomized study, five minutes a day of cyclic sighing (two breaths in, one long breath out) lifted mood and lowered stress more than mindfulness meditation. It's the first exercise in Unwind.",
+            source: "Balban et al. (2023). Brief structured respiration practices enhance mood and reduce physiological arousal. Cell Reports Medicine."
         ),
     ]
 

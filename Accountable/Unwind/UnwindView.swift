@@ -232,11 +232,11 @@ struct BreathingView: View {
 
 struct GroundingView: View {
     private let steps: [(count: Int, sense: String, prompt: String)] = [
-        (5, "see", "Look around. Name five things you can see."),
-        (4, "feel", "Notice four things you can feel: your feet, your chair, the air."),
-        (3, "hear", "Listen for three sounds, near or far."),
-        (2, "smell", "Find two things you can smell, or two smells you like."),
-        (1, "taste", "Notice one thing you can taste, or take a sip of water."),
+        (5, "see", "Look around the room. Say them out loud if you can."),
+        (4, "feel", "Your feet on the floor, your back on the chair, the air on your skin."),
+        (3, "hear", "Near or far. Even the quiet ones count."),
+        (2, "smell", "Or two smells you like, if nothing's around."),
+        (1, "taste", "Or take a sip of water and notice it."),
     ]
     @State private var index = 0
     @Environment(\.dismiss) private var dismiss
@@ -251,24 +251,32 @@ struct GroundingView: View {
             Spacer()
             if index < steps.count {
                 let step = steps[index]
-                Text("\(step.count)")
-                    .font(Theme.bigNumber(96))
-                    .foregroundStyle(Theme.accent)
-                    .contentTransition(.numericText(countsDown: true))
-                Text("things you can \(step.sense)")
-                    .font(Theme.title(26))
-                    .foregroundStyle(Theme.ink)
-                Text(step.prompt)
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: 10) {
+                    Text("\(step.count)")
+                        .font(Theme.bigNumber(120))
+                        .foregroundStyle(Theme.accent)
+                        .contentTransition(.numericText(countsDown: true))
+                    Text("\(step.count == 1 ? "thing" : "things") you can \(step.sense)")
+                        .font(Theme.title(28))
+                        .foregroundStyle(Theme.ink)
+                    Text(step.prompt)
+                        .font(.system(size: 17))
+                        .foregroundStyle(Theme.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
             } else {
                 Buddy(mood: .happy, size: 80).frame(maxWidth: .infinity)
-                Text("You're here.")
-                    .font(Theme.display(32))
-                    .foregroundStyle(Theme.ink)
-                Text("Take one more slow breath before you pick up where you left off.")
-                    .foregroundStyle(Theme.secondaryText)
+                VStack(spacing: 8) {
+                    Text("You're here.")
+                        .font(Theme.display(32))
+                        .foregroundStyle(Theme.ink)
+                    Text("Take one more slow breath before you pick up where you left off.")
+                        .foregroundStyle(Theme.secondaryText)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
             }
             Spacer()
             Button(index < steps.count - 1 ? "Next" : index == steps.count - 1 ? "Done" : "Back to Unwind") {
@@ -310,7 +318,7 @@ struct IdeasView: View {
             Text("Do this instead")
                 .font(Theme.display(30))
                 .foregroundStyle(Theme.ink)
-            Text("Pick one. Five minutes, then see how you feel.")
+            Text("Try this one. Five minutes, then see how you feel.")
                 .foregroundStyle(Theme.secondaryText)
             Spacer()
             let idea = Self.ideas[order[position]]

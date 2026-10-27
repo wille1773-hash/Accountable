@@ -11,6 +11,7 @@ struct IntroFlow: View {
     @State private var page: Page = .welcome
     @State private var forward = true
     @State private var profile = Profile()
+    @State private var compact = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,6 +25,8 @@ struct IntroFlow: View {
                     ))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background { GeometryReader { geo in Color.clear.onAppear { compact = geo.size.height < 560 } } }
+            .environment(\.compactIntro, compact)
             .clipped()
             .contentShape(Rectangle())
             // Swipe between pages as well as using the button.
@@ -124,7 +127,17 @@ struct IntroFlow: View {
 // MARK: - Shared page layout
 
 /// Visual on top, words underneath, source line at the bottom.
+/// True on short screens (iPhone SE and similar), where intro visuals are drawn smaller.
+private struct CompactIntroKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    var compactIntro: Bool {
+        get { self[CompactIntroKey.self] }
+        set { self[CompactIntroKey.self] = newValue }
+    }
+}
+
 struct IntroPage<Visual: View>: View {
+    @Environment(\.compactIntro) private var compact
     var eyebrow: String?
     var title: String
     var bodyText: String
@@ -136,18 +149,21 @@ struct IntroPage<Visual: View>: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                // Scale the picture down on short screens so the words still fit above the button.
                 visual
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 300)
-                    .padding(.top, 16)
+                    .scaleEffect(compact ? 0.72 : 1, anchor: .top)
+                    .frame(height: compact ? 216 : nil, alignment: .top)
+                    .padding(.top, compact ? 4 : 16)
                 Group {
                     if let eyebrow { Eyebrow(eyebrow) }
                     Text(title)
-                        .font(Theme.display(34))
+                        .font(Theme.display(compact ? 28 : 34))
                         .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(bodyText)
-                        .font(.system(size: 18))
+                        .font(.system(size: compact ? 16 : 18))
                         .foregroundStyle(Theme.secondaryText)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)

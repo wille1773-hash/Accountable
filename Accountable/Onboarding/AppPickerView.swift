@@ -28,7 +28,7 @@ struct AppPickerView: View {
                     .font(Theme.display(32))
                     .foregroundStyle(Theme.ink)
                     .padding(.top, isEditing ? 24 : 64)
-                Text("Pick the apps you lose time to. They'll stay locked until you open Accountable and say how long.")
+                Text("Pick the apps you lose time to. They stay locked until you say how long you want.")
                     .font(.system(size: 17))
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

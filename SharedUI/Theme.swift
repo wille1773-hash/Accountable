@@ -12,6 +12,9 @@ enum Theme {
     static let accentSoft = Color(light: 0xD3E8DA, dark: 0x21382B)
     /// Muted fill for "past" or inactive things, e.g. years already lived.
     static let muted = Color(light: 0xCBD3C8, dark: 0x3A443E)
+    /// Text and icons placed on the accent color: white in light mode, deep green-black in dark
+    /// mode, where the accent is a light mint that white text can't be read on.
+    static let onAccent = Color(light: 0xFFFFFF, dark: 0x0E1A13)
     /// Buddy's body color. A touch lighter than the accent so the face reads clearly.
     static let buddy = Color(light: 0x3E8E68, dark: 0x5DB88A)
 
@@ -99,7 +102,7 @@ struct AccentButtonStyle: ButtonStyle {
             .font(.system(.headline))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 17)
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.onAccent)
             .background(Theme.accent.opacity(isEnabled ? 1 : 0.35),
                         in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.98 : 1)

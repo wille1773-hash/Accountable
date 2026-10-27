@@ -57,6 +57,8 @@ enum Progress {
             guard let day = calendar.date(byAdding: .day, value: -back, to: today) else { return sum }
             return sum + (state.days[DayKey.string(for: day)]?.minutesUsed ?? 0)
         }
+        // The demo counts today, so before any use there's no pace to show yet.
+        if DemoMode.isOn && total == 0 { return nil }
         return Int((Double(total) / Double(backs.count)).rounded())
     }
 }

@@ -28,6 +28,10 @@ struct HomeView: View {
                 .animation(Theme.spring, value: model.state.lockout)
             }
             .background(Theme.background.ignoresSafeArea())
+            // Keep scrolled content from running under the clock and battery.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear.frame(height: 0).background(Theme.background)
+            }
             .toolbar(.hidden, for: .navigationBar)
             .onChange(of: model.showTimePicker) { _, show in
                 if show { askingHowLong = true; model.showTimePicker = false }
@@ -37,7 +41,8 @@ struct HomeView: View {
             }
             .sheet(isPresented: $askingHowLong) {
                 HowLongSheet()
-                    .presentationDetents([.fraction(0.72), .large])
+                    // Tall enough for the whole picker (iOS caps it at the screen height on small phones).
+                    .presentationDetents([.height(660), .large])
                     .presentationCornerRadius(28)
                     .presentationBackground(Theme.background)
             }
@@ -54,7 +59,7 @@ struct HomeView: View {
                 if let toast {
                     Text(toast)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(toast.hasPrefix("Promise kept") ? Theme.onAccent : Color.white)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
                         // Green for a kept promise, dark for a broken one.
@@ -415,6 +420,7 @@ struct WeekChart: View {
     var body: some View {
         let top = max(days.map(\.minutes).max() ?? 0, 1)
         let calendar = Calendar.current
+        let empty = days.allSatisfy { $0.minutes == 0 }
         HStack(alignment: .bottom, spacing: 8) {
             ForEach(days) { day in
                 let isToday = calendar.isDateInToday(day.date)
@@ -433,6 +439,14 @@ struct WeekChart: View {
             }
         }
         .frame(height: 96, alignment: .bottom)
+        .overlay {
+            if empty {
+                Text("Nothing yet this week. Your minutes show up here.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+                    .offset(y: -20)
+            }
+        }
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: days.map(\.minutes))
     }
 }

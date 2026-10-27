@@ -46,7 +46,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 icon: icon,
                 title: title,
                 subtitle: subtitle,
-                primaryButtonLabel: .init(text: onBreak ? "Keep my promise" : "Not now", color: .white),
+                primaryButtonLabel: .init(text: onBreak ? "Keep my promise" : "Not now", color: ShieldCopy.onAccent),
                 primaryButtonBackgroundColor: ShieldCopy.accent,
                 secondaryButtonLabel: .init(text: onBreak ? "Unlock anyway…" : "Unlock for…", color: ShieldCopy.accent),
                 secondaryButtonSubmenuItems: ShieldMenu.items.map(\.title)
@@ -59,7 +59,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             icon: icon,
             title: title,
             subtitle: subtitle,
-            primaryButtonLabel: .init(text: onBreak ? "Close" : "Open Accountable", color: .white),
+            primaryButtonLabel: .init(text: onBreak ? "Close" : "Open Accountable", color: ShieldCopy.onAccent),
             primaryButtonBackgroundColor: ShieldCopy.accent,
             secondaryButtonLabel: .init(text: onBreak ? "Open Accountable" : "Close", color: ShieldCopy.accent)
         )
@@ -72,6 +72,7 @@ enum ShieldCopy {
     static let background = dynamic(light: 0xF6F7F3, dark: 0x141916)
     static let ink = dynamic(light: 0x1C2420, dark: 0xEEF2EC)
     static let secondary = dynamic(light: 0x5C6862, dark: 0x9AA69F)
+    static let onAccent = dynamic(light: 0xFFFFFF, dark: 0x0E1A13)
 
     private static func dynamic(light: UInt32, dark: UInt32) -> UIColor {
         UIColor { traits in

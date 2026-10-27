@@ -152,7 +152,6 @@ final class AppModel: ObservableObject {
         // Counts only: iOS doesn't reveal which apps were picked.
         let counts = "apps=\(selection.applicationTokens.count);categories=\(selection.categoryTokens.count);websites=\(selection.webDomainTokens.count)"
         EventLog.append(.selectionChanged, detail: (wasSetUp ? "changed;" : "initial;") + counts)
-        Task { await Notifier.requestPermission() }
     }
 
     /// Simulator only: remember the pretend apps.
@@ -162,7 +161,6 @@ final class AppModel: ObservableObject {
             state.hasCompletedSetup = true
             if state.firstDay == nil { state.firstDay = DayKey.string(for: .now) }
         }
-        Task { await Notifier.requestPermission() }
     }
 
     // MARK: Sessions
@@ -182,6 +180,9 @@ final class AppModel: ObservableObject {
             throw error
         }
         refresh()
+        // Asked here rather than at setup, when it's clear what the notifications are for:
+        // "about a minute left" and "time's up". iOS only shows the prompt the first time.
+        Task { await Notifier.requestPermission() }
     }
 
     func endSessionEarly() {
