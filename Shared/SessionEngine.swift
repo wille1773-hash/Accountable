@@ -85,7 +85,10 @@ enum SessionEngine {
     @discardableResult
     /// Starts a session. During a break this throws `coolingDown`, unless `breakingPromise` is true:
     /// then the break ends early and the promise before it counts as broken.
-    static func start(minutes: Int, breakingPromise: Bool = false, now: Date = .now) throws -> ActiveSession {
+    ///
+    /// The time is shared by all the selected apps, but only `opening` (the locked app the user
+    /// started from) unlocks. Opening another app shows its lock screen, which offers the time left.
+    static func start(minutes: Int, breakingPromise: Bool = false, opening: Opened = Opened(), now: Date = .now) throws -> ActiveSession {
         logLockoutEndIfNeeded(now: now)
         if let lockout = SharedStore.load().lockout, lockout.endsAt > now {
             guard breakingPromise else { throw StartError.coolingDown(until: lockout.endsAt) }
@@ -95,11 +98,18 @@ enum SessionEngine {
         if let session = state.session, session.windowEnd > now { throw StartError.alreadyRunning }
         guard state.hasSelection || DemoMode.isOn else { throw StartError.nothingSelected }
 
+        // Started in the app after "Custom time…" on a lock screen: open the app it came from.
+        var opening = opening
+        if let pending = state.pendingOpen, let at = state.pendingOpenAt, now.timeIntervalSince(at) < 10 * 60 {
+            opening = opening.union(pending)
+        }
+
         var session = ActiveSession(
             id: UUID(),
             requestedMinutes: minutes,
             startedAt: now,
-            windowEnd: now.addingTimeInterval(max(minimumWindow, Double(minutes) * 60 * 2))
+            windowEnd: now.addingTimeInterval(max(minimumWindow, Double(minutes) * 60 * 2)),
+            opened: opening
         )
 
         if DemoMode.isOn {
@@ -107,6 +117,7 @@ enum SessionEngine {
             session.windowEnd = now.addingTimeInterval(Double(minutes) * DemoMode.minute * 2)
             SharedStore.update { state in
                 state.session = session
+                state.pendingOpen = nil
                 state.days[DayKey.string(for: now), default: DayStats()].made += 1
             }
             EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now)
@@ -126,11 +137,28 @@ enum SessionEngine {
 
         SharedStore.update { state in
             state.session = session
+            state.pendingOpen = nil
             state.days[DayKey.string(for: now), default: DayStats()].made += 1
         }
-        Shielding.unlock()
+        Shielding.lock(state.selection, except: opening)
         EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now)
         return session
+    }
+
+    /// "Use it here": spends the running session's time on one more app. Returns false if no
+    /// session is running (the lock screen was out of date).
+    @discardableResult
+    static func open(_ more: Opened, now: Date = .now) -> Bool {
+        var opened: Opened?
+        let state = SharedStore.update { state in
+            guard var session = state.session, session.windowEnd > now else { return }
+            session.opened = (session.opened ?? Opened()).union(more)
+            state.session = session
+            opened = session.opened
+        }
+        guard let opened else { return false }
+        if !DemoMode.isOn { Shielding.lock(state.selection, except: opened) }
+        return true
     }
 
     private static func schedule(for session: ActiveSession, now: Date) -> DeviceActivitySchedule {

@@ -27,16 +27,31 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let state = SharedStore.load()
         let now = Date.now
         let onBreak = (state.lockout?.endsAt ?? .distantPast) > now
-        let copy = ShieldCopy.make(lockout: state.lockout, now: now)
+        let session = state.session.flatMap { $0.windowEnd > now ? $0 : nil }
+        let copy = ShieldCopy.make(lockout: state.lockout, session: session, now: now)
 
         // Study log: "app opened while locked". iOS may call this more than once per open or reuse
         // an earlier result, so treat these counts as approximate. Just opening the app doesn't
         // break a promise; choosing "Unlock anyway" does.
-        EventLog.append(.shieldShown, detail: ShieldCopy.context(lockout: state.lockout, now: now))
+        EventLog.append(.shieldShown, detail: ShieldCopy.context(lockout: state.lockout, session: session, now: now))
 
         let icon = UIImage(systemName: copy.symbol)?.withTintColor(ShieldCopy.accent, renderingMode: .alwaysOriginal)
         let title = ShieldConfiguration.Label(text: copy.title, color: ShieldCopy.ink)
         let subtitle = ShieldConfiguration.Label(text: copy.subtitle, color: ShieldCopy.secondary)
+
+        if session != nil {
+            // The session's time is shared: spend some of it here, or not.
+            return ShieldConfiguration(
+                backgroundBlurStyle: .systemThickMaterial,
+                backgroundColor: ShieldCopy.background.withAlphaComponent(0.55),
+                icon: icon,
+                title: title,
+                subtitle: subtitle,
+                primaryButtonLabel: .init(text: "Use it here", color: ShieldCopy.onAccent),
+                primaryButtonBackgroundColor: ShieldCopy.accent,
+                secondaryButtonLabel: .init(text: "Not now", color: ShieldCopy.accent)
+            )
+        }
 
         if #available(iOS 26.4, *) {
             // Pick a time right here. The big button is the good choice; the menu is a step away.
@@ -92,13 +107,22 @@ enum ShieldCopy {
         var subtitle: String
     }
 
-    /// "cooldown" if a break is running, otherwise "locked".
-    static func context(lockout: Lockout?, now: Date) -> String {
+    /// "session" if a session is running, "cooldown" if a break is, otherwise "locked".
+    static func context(lockout: Lockout?, session: ActiveSession?, now: Date) -> String {
+        if session != nil { return "session" }
         if let lockout, lockout.endsAt > now { return "cooldown" }
         return "locked"
     }
 
-    static func make(lockout: Lockout?, now: Date) -> Text {
+    static func make(lockout: Lockout?, session: ActiveSession?, now: Date) -> Text {
+        if let session {
+            let left = max(1, session.requestedMinutes - session.usedMinutes)
+            return Text(
+                symbol: "timer",
+                title: "About \(left) min left",
+                subtitle: "Your \(session.requestedMinutes) minutes are shared across your apps. Spend some of them here?"
+            )
+        }
         if let lockout, lockout.endsAt > now {
             let time = lockout.endsAt.formatted(date: .omitted, time: .shortened)
             return Text(

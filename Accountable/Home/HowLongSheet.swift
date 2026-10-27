@@ -23,7 +23,7 @@ struct HowLongSheet: View {
                         .foregroundStyle(Theme.ink)
                     Text(model.onBreak
                          ? "You're on a break. Unlocking now breaks your promise, and Buddy will be sad."
-                         : "Only time in your apps counts.")
+                         : "One timer for all your apps. Only time in them counts.")
                         .foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()

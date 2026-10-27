@@ -1,5 +1,6 @@
 import Foundation
 import FamilyControls
+import ManagedSettings
 
 /// A session the user asked for ("15 minutes, please").
 struct ActiveSession: Codable, Equatable {
@@ -10,6 +11,25 @@ struct ActiveSession: Codable, Equatable {
     var windowEnd: Date
     /// Minutes of use reported so far by the monitor extension.
     var usedMinutes: Int = 0
+    /// What the user chose to spend this session's time on. Everything else stays locked, and
+    /// opening it asks first. Optional so sessions saved before this field existed still load.
+    var opened: Opened?
+}
+
+/// Apps and websites unlocked during a session. When iOS only says which category a locked app
+/// belongs to (the user picked a whole category), the whole category opens.
+struct Opened: Codable, Equatable {
+    var applications: Set<ApplicationToken> = []
+    var webDomains: Set<WebDomainToken> = []
+    var categories: Set<ActivityCategoryToken> = []
+
+    func union(_ other: Opened) -> Opened {
+        Opened(
+            applications: applications.union(other.applications),
+            webDomains: webDomains.union(other.webDomains),
+            categories: categories.union(other.categories)
+        )
+    }
 }
 
 /// A cooldown after hitting a limit. No new session can start until `endsAt`.
@@ -137,6 +157,9 @@ struct SharedState: Codable {
     var widgetHops = 0
     /// Set when someone picks "Custom time…" on the lock screen, so the app opens to the time picker.
     var wantsCustomTime = false
+    /// The locked app that "Custom time…" was picked from, so it opens when the session starts.
+    var pendingOpen: Opened?
+    var pendingOpenAt: Date?
 
     init() {}
 
@@ -160,6 +183,8 @@ struct SharedState: Codable {
         recentPromises = (try? c.decodeIfPresent([PromiseRecord].self, forKey: .recentPromises)) ?? []
         widgetHops = (try? c.decodeIfPresent(Int.self, forKey: .widgetHops)) ?? 0
         wantsCustomTime = (try? c.decodeIfPresent(Bool.self, forKey: .wantsCustomTime)) ?? false
+        pendingOpen = try? c.decodeIfPresent(Opened.self, forKey: .pendingOpen)
+        pendingOpenAt = try? c.decodeIfPresent(Date.self, forKey: .pendingOpenAt)
     }
 
     var hasSelection: Bool {

@@ -11,20 +11,16 @@ extension ManagedSettingsStore.Name {
 enum Shielding {
     private static var store: ManagedSettingsStore { ManagedSettingsStore(named: .accountable) }
 
-    static func lock(_ selection: FamilyActivitySelection) {
+    /// Locks the selected apps, except anything opened for the running session.
+    static func lock(_ selection: FamilyActivitySelection, except opened: Opened = Opened()) {
         let store = store
-        store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
-        store.shield.applicationCategories = selection.categoryTokens.isEmpty ? nil : .specific(selection.categoryTokens)
-        store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
-        store.shield.webDomainCategories = selection.categoryTokens.isEmpty ? nil : .specific(selection.categoryTokens)
-    }
-
-    static func unlock() {
-        let store = store
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
-        store.shield.webDomains = nil
-        store.shield.webDomainCategories = nil
+        let apps = selection.applicationTokens.subtracting(opened.applications)
+        let sites = selection.webDomainTokens.subtracting(opened.webDomains)
+        let categories = selection.categoryTokens.subtracting(opened.categories)
+        store.shield.applications = apps.isEmpty ? nil : apps
+        store.shield.applicationCategories = categories.isEmpty ? nil : .specific(categories, except: opened.applications)
+        store.shield.webDomains = sites.isEmpty ? nil : sites
+        store.shield.webDomainCategories = categories.isEmpty ? nil : .specific(categories, except: opened.webDomains)
     }
 
     /// Removes every setting Accountable has applied.
