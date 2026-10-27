@@ -25,13 +25,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.intervalDidEnd(for: activity)
         SessionEngine.logLockoutEndIfNeeded()
         if activity.isSitesClock {
-            // The session's minutes are up on the clock: social media websites block again, and
-            // open apps get closed so a page they already loaded can't keep going.
-            let state = SharedStore.load()
-            if state.blocksSocialSites {
-                Shielding.filterSocialSites(true)
-                Shielding.closeApps(state.selection)
-            }
+            // The session's minutes are up on the clock: social media websites block again.
+            if SharedStore.load().blocksSocialSites { Shielding.filterSocialSites(true) }
             return
         }
         guard let sessionID = activity.sessionID else { return }

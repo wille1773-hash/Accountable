@@ -1,5 +1,4 @@
 import FamilyControls
-import Foundation
 import ManagedSettings
 
 extension ManagedSettingsStore.Name {
@@ -50,22 +49,6 @@ enum Shielding {
     /// Turns the social media website block on or off.
     static func filterSocialSites(_ on: Bool) {
         store.webContent.blockedByFilter = on ? .specific(Set(socialSites.map { WebDomain(domain: $0) })) : nil
-    }
-
-    /// Briefly hides the selected apps, which closes any that are open, then brings them back.
-    /// Apps like SocialLite can't be locked, and a page they already have open keeps working after
-    /// the website block comes back. Closing them means the next open loads fresh and gets blocked.
-    static func closeApps(_ selection: FamilyActivitySelection) {
-        let apps = Set(selection.applicationTokens.map { Application(token: $0) })
-        guard !apps.isEmpty else { return }
-        store.application.blockedApplications = apps
-        Thread.sleep(forTimeInterval: 2)
-        store.application.blockedApplications = nil
-    }
-
-    /// Brings back any apps `closeApps` hid, in case it was stopped partway through.
-    static func unhideApps() {
-        if store.application.blockedApplications != nil { store.application.blockedApplications = nil }
     }
 
     /// Removes every setting Accountable has applied.
