@@ -23,7 +23,11 @@ enum WidgetSnapshots {
             ("medium", .medium, CGSize(width: 364, height: 170)),
             ("large", .large, CGSize(width: 364, height: 382)),
         ]
-        for (label, entry) in [("thriving", thriving), ("session", session), ("low", low)] {
+        // Long-time user: a big streak, a full row of recent dots, a long timer.
+        let veteran = BuddyEntry(date: .now, status: .session(requested: 240, used: 3), health: 10, keptInARow: 128,
+                                 recent: Array(repeating: true, count: 10), week: [30, 25, 20, 35, 15, 10, 5], pose: BuddyPose(x: 0.9))
+
+        for (label, entry) in [("thriving", thriving), ("session", session), ("low", low), ("veteran", veteran)] {
             for (name, size, points) in sizes {
                 let view = BuddyWidgetContent(entry: entry, size: size)
                     .padding(16)
@@ -37,6 +41,18 @@ enum WidgetSnapshots {
                 }
             }
         }
+        // How a tinted or clear Home Screen draws it: one color, on glass.
+        let tinted = BuddyWidgetContent(entry: thriving, size: .small)
+            .environment(\.widgetRenderingMode, .accented)
+            .foregroundStyle(.white)
+            .padding(16)
+            .frame(width: 170, height: 170)
+            .background(Color(white: 0.25))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        let renderer = ImageRenderer(content: tinted)
+        renderer.scale = 3
+        if let data = renderer.uiImage?.pngData() { try? data.write(to: dir.appendingPathComponent("tinted-small.png")) }
+
         print("WIDGET_SNAPSHOTS \(dir.path)")
     }
 }

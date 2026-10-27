@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 /// The little companion. A soft green robot whose antenna tip is the dot from the app icon.
 ///
@@ -31,11 +32,15 @@ struct Buddy: View {
     @State private var hop: CGFloat = 0
     @State private var squash: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Widgets on a tinted or clear Home Screen are drawn in one color, which would hide the eyes.
+    @Environment(\.widgetRenderingMode) private var renderingMode
 
     private var vitality: Double { Double(BuddyHealth.clamp(health)) / 10 }
     private var w: CGFloat { size * (0.7 + 0.3 * vitality) }
-    /// Eyes and antenna tip stay dark in both light and dark mode, so Buddy always looks the same.
+    /// Eyes stay dark in both light and dark mode, so Buddy always looks the same.
     private let featureColor = Color(light: 0x1C2420, dark: 0x1C2420)
+    /// The antenna tip sits against the background, so in dark mode it's lighter to stay visible.
+    private let tipColor = Color(light: 0x1C2420, dark: 0xA7B8AD)
     /// Low spirits wash Buddy's color out.
     private var saturation: Double { 0.35 + 0.65 * min(1, vitality * 1.4) }
     private var canHop: Bool { !reduceMotion && mood != .sleepy && mood != .sad && health >= 4 }
@@ -72,7 +77,7 @@ struct Buddy: View {
     private var antenna: some View {
         VStack(spacing: 0) {
             Circle()
-                .fill(featureColor)
+                .fill(tipColor)
                 .frame(width: w * 0.13, height: w * 0.13)
             Rectangle()
                 .fill(Theme.buddy)
@@ -87,7 +92,12 @@ struct Buddy: View {
         RoundedRectangle(cornerRadius: w * 0.3, style: .continuous)
             .fill(Theme.buddy)
             .frame(width: w, height: w * 0.82)
-            .overlay(face.offset(y: mood == .sad ? w * 0.05 : -w * 0.02))
+            .overlay(
+                face.offset(y: mood == .sad ? w * 0.05 : -w * 0.02)
+                    // In one-color widgets, cut the eyes out so the background shows through them.
+                    .blendMode(renderingMode == .fullColor ? .normal : .destinationOut)
+            )
+            .compositingGroup()
     }
 
     private var feet: some View {
