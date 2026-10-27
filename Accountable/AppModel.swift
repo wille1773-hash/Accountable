@@ -149,6 +149,7 @@ final class AppModel: ObservableObject {
             if state.firstDay == nil { state.firstDay = DayKey.string(for: .now) }
         }
         reassertLock()
+        SessionEngine.selectionChanged()
         // Counts only: iOS doesn't reveal which apps were picked.
         let counts = "apps=\(selection.applicationTokens.count);categories=\(selection.categoryTokens.count);websites=\(selection.webDomainTokens.count)"
         EventLog.append(.selectionChanged, detail: (wasSetUp ? "changed;" : "initial;") + counts)

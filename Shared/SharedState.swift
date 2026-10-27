@@ -14,6 +14,9 @@ struct ActiveSession: Codable, Equatable {
     /// What the user chose to spend this session's time on. Everything else stays locked, and
     /// opening it asks first. Optional so sessions saved before this field existed still load.
     var opened: Opened?
+    /// Minutes already used when monitoring was restarted mid-session (the app list changed).
+    /// Usage reports after that count from zero, so they're added to this.
+    var countedBefore: Int?
 }
 
 /// Apps and websites unlocked during a session. When iOS only says which category a locked app

@@ -154,6 +154,25 @@ enum SessionEngine {
         return true
     }
 
+    /// The app list changed mid-session: count the new list for the time that's left, and lock
+    /// anything that was added (its lock screen offers "Use it here" like any other app).
+    static func selectionChanged(now: Date = .now) {
+        let state = SharedStore.load()
+        guard !DemoMode.isOn, let session = state.session, session.windowEnd > now else { return }
+        let left = max(1, session.requestedMinutes - session.usedMinutes)
+        do {
+            try DeviceActivityCenter().startMonitoring(
+                .session(session.id),
+                during: schedule(for: session, now: now),
+                events: events(for: left, selection: state.selection)
+            )
+            SharedStore.update { $0.session?.countedBefore = session.usedMinutes }
+        } catch {
+            // Keep the old monitoring. The window end still ends the session.
+        }
+        Shielding.lock(state.selection, except: session.opened ?? Opened())
+    }
+
     private static func schedule(for session: ActiveSession, now: Date) -> DeviceActivitySchedule {
         // Full dates (not just times of day) so a window can run past midnight.
         let fields: Set<Calendar.Component> = [.calendar, .timeZone, .year, .month, .day, .hour, .minute, .second]
@@ -220,7 +239,7 @@ enum SessionEngine {
     static func recordProgress(sessionID: UUID, minutes: Int) {
         SharedStore.update { state in
             guard var session = state.session, session.id == sessionID else { return }
-            session.usedMinutes = max(session.usedMinutes, minutes)
+            session.usedMinutes = max(session.usedMinutes, (session.countedBefore ?? 0) + minutes)
             state.session = session
         }
     }

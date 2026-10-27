@@ -25,6 +25,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.intervalDidEnd(for: activity)
         SessionEngine.logLockoutEndIfNeeded()
         guard let sessionID = activity.sessionID else { return }
+        // Restarting monitoring mid-session (the app list changed) may end the old interval early.
+        // Only a window that has actually run out ends the session.
+        if let session = SharedStore.load().session, session.id == sessionID,
+           session.windowEnd > .now.addingTimeInterval(60) { return }
         SessionEngine.finish(sessionID: sessionID, reason: .windowEnded)
     }
 }

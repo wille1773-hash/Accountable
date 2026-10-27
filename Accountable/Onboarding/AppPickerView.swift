@@ -58,6 +58,12 @@ struct AppPickerView: View {
         .sheet(isPresented: Binding(get: { showingPicker && DemoMode.isOn }, set: { showingPicker = $0 })) {
             DemoAppPicker(selected: $demoApps)
         }
+        .onChange(of: showingPicker) { _, open in
+            // From Settings, save as soon as Apple's picker closes, so backing out doesn't lose it.
+            guard isEditing, loaded, !DemoMode.isOn, !open, selection != model.state.selection,
+                  count > 0 else { return }
+            model.saveSelection(selection)
+        }
         .onAppear {
             guard !loaded else { return }
             selection = model.state.selection
