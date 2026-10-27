@@ -62,8 +62,16 @@ struct SettingsView: View {
                 if model.state.study.isLogging {
                     Section {
                         LabeledContent("Participant", value: model.state.study.participantID)
+                        NavigationLink {
+                            StudySummaryView()
+                        } label: {
+                            Label("Study summary", systemImage: "chart.bar")
+                        }
                         ShareLink(item: EventLogExport(), preview: SharePreview("Accountable study log")) {
                             Label("Export study data (CSV)", systemImage: "square.and.arrow.up")
+                        }
+                        ShareLink(item: DailySummaryExport(), preview: SharePreview("Accountable daily summary")) {
+                            Label("Export daily summary (CSV)", systemImage: "tablecells")
                         }
                     } header: {
                         Text("Research study")

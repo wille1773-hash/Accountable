@@ -65,7 +65,8 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 - [ ] Set a participant ID and group, then **Save**. Settings closes and the consent screen appears.
 - [ ] **No thanks** removes the enrollment. **I agree** starts logging, and the Breaks section now says it's set by the study.
 - [ ] **Export my data (CSV)** opens the share sheet. AirDrop it to your Mac and check the rows match what you did.
-- [ ] Check whether `shield_shown` rows appear. If none do, iOS isn't letting the lock screen extension write, and only `shield_button_tapped` rows will show opens of locked apps.
+- [ ] **Study summary** shows the right counts for what you did. **Export daily summary (CSV)** has one row per day.
+- Known gap: `shield_shown` is never recorded, because the lock screen extension can't read or write the shared keychain. Taps on its buttons (`shield_button_tapped`) are recorded. Fixing this needs an App Group.
 
 ### 7. Edge cases
 - [ ] **Restart mid-session:** start 15 min, restart the phone, and open a selected app. It should still be unlocked, and still lock at the limit.

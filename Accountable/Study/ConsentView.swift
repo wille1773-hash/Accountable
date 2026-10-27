@@ -24,7 +24,7 @@ struct ConsentView: View {
                     bullet("When you ask for a session, and how many minutes")
                     bullet("When sessions start and end, and when time runs out")
                     bullet("When breaks start and end, and how long they are")
-                    bullet("When you open a locked app or tap its lock screen")
+                    bullet("When you tap a button on a locked app's lock screen")
                 }
 
                 Card {
