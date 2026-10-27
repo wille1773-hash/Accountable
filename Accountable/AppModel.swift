@@ -219,6 +219,12 @@ final class AppModel: ObservableObject {
         if previous.group != group { EventLog.append(.studyEnrolled, detail: "group=\(group.rawValue)") }
     }
 
+    /// Back to the regular app: logging stops and the study section is hidden. The log itself stays
+    /// on the phone, so enrolling again with the same participant ID can still export it.
+    func leaveStudy() {
+        state = SharedStore.update { $0.study = StudySettings() }
+    }
+
     // MARK: Settings
 
     func updateCooldown(_ settings: CooldownSettings) {

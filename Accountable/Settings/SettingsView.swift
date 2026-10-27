@@ -18,6 +18,8 @@ struct SettingsView: View {
     @State private var passcode = ""
     @State private var showingResearcher = false
     @State private var confirmingStartOver = false
+    @State private var confirmingLeaveStudy = false
+    @AppStorage(Appearance.storageKey) private var appearance = Appearance.auto
 
     var body: some View {
         NavigationStack {
@@ -37,6 +39,13 @@ struct SettingsView: View {
                 }
 
                 CooldownSection()
+
+                Section("Appearance") {
+                    Picker("Appearance", selection: $appearance) {
+                        ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
 
                 Section("About") {
                     NavigationLink("Why this works") { ResearchView() }
@@ -73,6 +82,14 @@ struct SettingsView: View {
                         ShareLink(item: DailySummaryExport(), preview: SharePreview("Accountable daily summary")) {
                             Label("Export daily summary (CSV)", systemImage: "tablecells")
                         }
+                        Button("Leave the study") { confirmingLeaveStudy = true }
+                            .foregroundStyle(Theme.secondaryText)
+                            .confirmationDialog("Leave the study?", isPresented: $confirmingLeaveStudy, titleVisibility: .visible) {
+                                Button("Leave the study") { model.leaveStudy() }
+                                Button("Cancel", role: .cancel) {}
+                            } message: {
+                                Text("Logging stops and the app goes back to normal. What's been logged so far stays on this phone.")
+                            }
                     } header: {
                         Text("Research study")
                     } footer: {
@@ -213,6 +230,35 @@ struct CooldownSection: View {
         case 2: "2nd time"
         case 3: "3rd time"
         default: "\(n)th time"
+        }
+    }
+}
+
+/// Light, dark, or follow the phone. Kept in the app's own settings, since only the app uses it.
+enum Appearance: String, CaseIterable, Identifiable {
+    case auto, light, dark
+
+    static let storageKey = "appearance"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .auto: "Auto"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+
+    /// Applies to every window, sheets included.
+    func apply() {
+        let style: UIUserInterfaceStyle = switch self {
+        case .auto: .unspecified
+        case .light: .light
+        case .dark: .dark
+        }
+        for scene in UIApplication.shared.connectedScenes {
+            (scene as? UIWindowScene)?.windows.forEach { $0.overrideUserInterfaceStyle = style }
         }
     }
 }
