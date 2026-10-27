@@ -21,17 +21,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         Notifier.post(id: "one-minute", title: "About a minute left", body: "Good time to wrap up.")
     }
 
-    override func intervalWillEndWarning(for activity: DeviceActivityName) {
-        super.intervalWillEndWarning(for: activity)
-        // A short session's minutes are up (see SessionEngine.startSitesClock).
-        if activity.isSitesClock { blockSitesIfWanted() }
-    }
-
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
         SessionEngine.logLockoutEndIfNeeded()
         if activity.isSitesClock {
-            blockSitesIfWanted()
+            // The session's minutes are up on the clock: social media websites block again.
+            if SharedStore.load().blocksSocialSites { Shielding.filterSocialSites(true) }
             return
         }
         guard let sessionID = activity.sessionID else { return }
@@ -40,10 +35,5 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         if let session = SharedStore.load().session, session.id == sessionID,
            session.windowEnd > .now.addingTimeInterval(60) { return }
         SessionEngine.finish(sessionID: sessionID, reason: .windowEnded)
-    }
-
-    /// The session's minutes are up on the clock: social media websites block again.
-    private func blockSitesIfWanted() {
-        if SharedStore.load().blocksSocialSites { Shielding.filterSocialSites(true) }
     }
 }

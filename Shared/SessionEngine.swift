@@ -1,7 +1,6 @@
 import DeviceActivity
 import FamilyControls
 import Foundation
-import os
 
 extension DeviceActivityName {
     private static let sessionPrefix = "session."
@@ -185,25 +184,18 @@ enum SessionEngine {
 
     /// iOS can't tell how long someone spends on social media sites inside other apps (SocialLite,
     /// for one), so the website block comes back after the session's minutes on the clock.
-    /// A schedule must run at least 15 minutes and can't start in the past, so a shorter session
-    /// uses a 15-minute schedule whose end warning fires when its minutes are up.
+    /// The schedule must be at least 15 minutes long, so short ones start in the past.
     private static func startSitesClock(for session: ActiveSession, now: Date) {
         let fields: Set<Calendar.Component> = [.calendar, .timeZone, .year, .month, .day, .hour, .minute, .second]
-        let minutes = session.requestedMinutes
-        let length = max(minutes, Int(minimumWindow / 60))
+        let end = now.addingTimeInterval(Double(session.requestedMinutes) * 60)
+        let start = min(now, end.addingTimeInterval(-minimumWindow))
         let schedule = DeviceActivitySchedule(
-            intervalStart: Calendar.current.dateComponents(fields, from: now),
-            intervalEnd: Calendar.current.dateComponents(fields, from: now.addingTimeInterval(Double(length) * 60)),
-            repeats: false,
-            warningTime: length > minutes ? DateComponents(minute: length - minutes) : nil
+            intervalStart: Calendar.current.dateComponents(fields, from: start),
+            intervalEnd: Calendar.current.dateComponents(fields, from: end),
+            repeats: false
         )
-        do {
-            try DeviceActivityCenter().startMonitoring(.sites(session.id), during: schedule)
-        } catch {
-            // The sites stay open until the session ends instead.
-            Logger(subsystem: "com.wille1773.Accountable", category: "sessions")
-                .error("Website clock didn't start: \(String(describing: error), privacy: .public)")
-        }
+        // If iOS won't take it, the sites stay open until the session ends, as before.
+        try? DeviceActivityCenter().startMonitoring(.sites(session.id), during: schedule)
     }
 
     private static func schedule(for session: ActiveSession, now: Date) -> DeviceActivitySchedule {
