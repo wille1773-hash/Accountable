@@ -8,7 +8,7 @@ struct SettingsView: View {
     /// SHA-256 of the researcher passcode, so the passcode itself isn't in the public repo.
     /// It only keeps participants from switching groups by accident or curiosity.
     /// Don't reuse a real password here.
-    private static let researcherPasscodeHash = "5e34b89bbe60ebd0189cfc4d912ec1fbbb9d137c3a7129732e7c6ea0ee25b379"
+    private static let researcherPasscodeHash = "0329d2a6d2cfa4f3d777f4a8c8b9ef5e695e73f9a6085e0fff2248b74c0e21f6"
 
     private static func isResearcherPasscode(_ text: String) -> Bool {
         SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined() == researcherPasscodeHash
