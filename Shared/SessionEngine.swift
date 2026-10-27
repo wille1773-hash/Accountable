@@ -7,18 +7,11 @@ extension DeviceActivityName {
 
     static func session(_ id: UUID) -> Self { Self(sessionPrefix + id.uuidString) }
 
-    private static let sitesPrefix = "sites."
-
-    /// Ends when a session's minutes have passed on the clock, to block social media websites again.
-    static func sites(_ id: UUID) -> Self { Self(sitesPrefix + id.uuidString) }
-
     /// The session this activity belongs to, so callbacks from an old session are ignored.
     var sessionID: UUID? {
         guard rawValue.hasPrefix(Self.sessionPrefix) else { return nil }
         return UUID(uuidString: String(rawValue.dropFirst(Self.sessionPrefix.count)))
     }
-
-    var isSitesClock: Bool { rawValue.hasPrefix(Self.sitesPrefix) }
 }
 
 extension DeviceActivityEvent.Name {
@@ -141,8 +134,6 @@ enum SessionEngine {
             state.days[DayKey.string(for: now), default: DayStats()].made += 1
         }
         Shielding.lock(state.selection, except: opening)
-        Shielding.filterSocialSites(false)
-        if state.blocksSocialSites { startSitesClock(for: session, now: now) }
         EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now)
         return session
     }
@@ -180,22 +171,6 @@ enum SessionEngine {
             // Keep the old monitoring. The window end still ends the session.
         }
         Shielding.lock(state.selection, except: session.opened ?? Opened())
-    }
-
-    /// iOS can't tell how long someone spends on social media sites inside other apps (SocialLite,
-    /// for one), so the website block comes back after the session's minutes on the clock.
-    /// The schedule must be at least 15 minutes long, so short ones start in the past.
-    private static func startSitesClock(for session: ActiveSession, now: Date) {
-        let fields: Set<Calendar.Component> = [.calendar, .timeZone, .year, .month, .day, .hour, .minute, .second]
-        let end = now.addingTimeInterval(Double(session.requestedMinutes) * 60)
-        let start = min(now, end.addingTimeInterval(-minimumWindow))
-        let schedule = DeviceActivitySchedule(
-            intervalStart: Calendar.current.dateComponents(fields, from: start),
-            intervalEnd: Calendar.current.dateComponents(fields, from: end),
-            repeats: false
-        )
-        // If iOS won't take it, the sites stay open until the session ends, as before.
-        try? DeviceActivityCenter().startMonitoring(.sites(session.id), during: schedule)
     }
 
     private static func schedule(for session: ActiveSession, now: Date) -> DeviceActivitySchedule {
@@ -315,8 +290,7 @@ enum SessionEngine {
 
         if !DemoMode.isOn {
             Shielding.lock(state.selection)
-            Shielding.filterSocialSites(state.blocksSocialSites)
-            DeviceActivityCenter().stopMonitoring([.session(session.id), .sites(session.id)])
+            DeviceActivityCenter().stopMonitoring([.session(session.id)])
         }
         switch reason {
         case .limitReached:
