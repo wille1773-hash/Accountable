@@ -27,6 +27,26 @@ enum SharedKeychain {
         return result as? Data
     }
 
+    /// Deletes everything Accountable keeps in the shared keychain.
+    static func removeAll() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
+    /// iOS keeps keychain items after an app is deleted, but deletes the app's own storage.
+    /// So on the first launch after an install, clear out anything a previous install left behind:
+    /// deleting the app should really delete your data (and the study log, as consent promises).
+    /// Call from the app only, never from an extension.
+    static func clearIfFreshInstall() {
+        let flag = "installedBefore"
+        guard !UserDefaults.standard.bool(forKey: flag) else { return }
+        removeAll()
+        UserDefaults.standard.set(true, forKey: flag)
+    }
+
     static func write(_ data: Data, for key: String) {
         let match: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

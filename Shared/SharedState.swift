@@ -19,6 +19,9 @@ struct Lockout: Codable, Equatable {
     var minutes: Int
     /// Set once "lockout ended" has been written to the event log.
     var endLogged: Bool = false
+    /// Set if the user tried to open a locked app during this break, which breaks the promise.
+    /// Optional so breaks saved before this field existed still load.
+    var brokenEarly: Bool?
 }
 
 /// Promises for one calendar day.

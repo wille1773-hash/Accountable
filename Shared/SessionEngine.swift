@@ -216,10 +216,15 @@ enum SessionEngine {
                 // Not the user's doing: no verdict, and Buddy's mood doesn't change.
                 state.days[day, default: DayStats()].minutesUsed += session.usedMinutes
             case .limitReached:
-                state.buddyHealth = BuddyHealth.clamp(state.buddyHealth - BuddyHealth.brokenLoss)
+                // Using exactly the time you asked for keeps the promise. It's only broken if you
+                // try to get back in during the break that follows (see recordBreakAttempt).
                 state.days[day, default: DayStats()].limitsHit += 1
+                state.days[day, default: DayStats()].kept += 1
                 state.days[day, default: DayStats()].minutesUsed += session.requestedMinutes
-                state.recentPromises.append(PromiseRecord(kept: false, at: now))
+                if counts {
+                    state.buddyHealth = BuddyHealth.clamp(state.buddyHealth + BuddyHealth.keptGain)
+                    state.recentPromises.append(PromiseRecord(kept: true, at: now))
+                }
                 // Escalation counts limit hits on the calendar day the limit was hit,
                 // so it resets at midnight even if the session started yesterday.
                 state.limitHitsByDay[DayKey.string(for: now), default: 0] += 1
@@ -257,9 +262,30 @@ enum SessionEngine {
             Notifier.post(
                 id: "time-up",
                 title: "Time's up",
-                body: "That's the \(session.requestedMinutes) minutes you asked for. You can start another session at \(time)."
+                body: "That's the \(session.requestedMinutes) minutes you asked for. Promise kept. You can start another session at \(time)."
             )
         }
+    }
+
+    /// Someone opened a locked app during a break: the promise from the session before it is broken.
+    /// Counted once per break, so opening the app three times doesn't cost three promises.
+    static func recordBreakAttempt(now: Date = .now) {
+        // Cheap read first: the lock screen calls this every time it appears.
+        guard let current = SharedStore.load().lockout, current.endsAt > now, current.brokenEarly != true else { return }
+        var recorded = false
+        SharedStore.update { state in
+            guard var lockout = state.lockout, lockout.endsAt > now, lockout.brokenEarly != true else { return }
+            lockout.brokenEarly = true
+            state.lockout = lockout
+            state.buddyHealth = BuddyHealth.clamp(state.buddyHealth - BuddyHealth.brokenLoss - BuddyHealth.keptGain)
+            if let last = state.recentPromises.indices.last, state.recentPromises[last].kept {
+                state.recentPromises[last].kept = false
+            } else {
+                state.recentPromises.append(PromiseRecord(kept: false, at: now))
+            }
+            recorded = true
+        }
+        if recorded { EventLog.append(.brokeDuringBreak) }
     }
 
     /// Nothing runs at the moment a cooldown ends (Apple's schedules can't be that short, and nothing

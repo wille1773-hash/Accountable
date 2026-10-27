@@ -50,6 +50,8 @@ struct AppPickerView: View {
             .animation(Theme.spring, value: count)
         }
         .familyActivityPicker(
+            headerText: "Pick the apps you lose time to. Tip: open Social and tick just the apps you use. You can skip the websites.",
+            footerText: "Accountable only sees anonymous tokens for what you pick, never app names or what you do in them.",
             isPresented: Binding(get: { showingPicker && !DemoMode.isOn }, set: { showingPicker = $0 }),
             selection: $selection
         )

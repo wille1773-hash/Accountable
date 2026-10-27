@@ -25,22 +25,44 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     private func makeConfiguration() -> ShieldConfiguration {
         let state = SharedStore.load()
-        let copy = ShieldCopy.make(lockout: state.lockout, now: .now)
+        let now = Date.now
+        let onBreak = (state.lockout?.endsAt ?? .distantPast) > now
+        let copy = ShieldCopy.make(lockout: state.lockout, now: now)
 
-        // Study log: "app opened while locked". iOS may not let this extension write files, and it
-        // may call this more than once per open or reuse an earlier result, so treat these counts
-        // as approximate. Button taps (logged by the shield action extension) are reliable.
-        EventLog.append(.shieldShown, detail: ShieldCopy.context(lockout: state.lockout, now: .now))
+        // Study log: "app opened while locked". iOS may call this more than once per open or reuse
+        // an earlier result, so treat these counts as approximate.
+        EventLog.append(.shieldShown, detail: ShieldCopy.context(lockout: state.lockout, now: now))
+        // Opening a locked app during a break breaks the promise from the session before it.
+        if onBreak { SessionEngine.recordBreakAttempt(now: now) }
+
+        let icon = UIImage(systemName: copy.symbol)?.withTintColor(ShieldCopy.accent, renderingMode: .alwaysOriginal)
+        let title = ShieldConfiguration.Label(text: copy.title, color: ShieldCopy.ink)
+        let subtitle = ShieldConfiguration.Label(text: copy.subtitle, color: ShieldCopy.secondary)
+
+        if #available(iOS 26.4, *), !onBreak {
+            // Pick a time right here: "Not now" is the big button, "Unlock for…" opens a short menu.
+            return ShieldConfiguration(
+                backgroundBlurStyle: nil,
+                backgroundColor: ShieldCopy.background,
+                icon: icon,
+                title: title,
+                subtitle: .init(text: "How long do you want? Say it and mean it. It locks again when the time's up.", color: ShieldCopy.secondary),
+                primaryButtonLabel: .init(text: "Not now", color: .white),
+                primaryButtonBackgroundColor: ShieldCopy.accent,
+                secondaryButtonLabel: .init(text: "Unlock for…", color: ShieldCopy.accent),
+                secondaryButtonSubmenuItems: ShieldMenu.minutes.map { "\($0) minutes" }
+            )
+        }
 
         return ShieldConfiguration(
             backgroundBlurStyle: nil,
             backgroundColor: ShieldCopy.background,
-            icon: UIImage(systemName: copy.symbol)?.withTintColor(ShieldCopy.accent, renderingMode: .alwaysOriginal),
-            title: .init(text: copy.title, color: ShieldCopy.ink),
-            subtitle: .init(text: copy.subtitle, color: ShieldCopy.secondary),
-            primaryButtonLabel: .init(text: "Open Accountable", color: .white),
+            icon: icon,
+            title: title,
+            subtitle: subtitle,
+            primaryButtonLabel: .init(text: onBreak ? "Close" : "Open Accountable", color: .white),
             primaryButtonBackgroundColor: ShieldCopy.accent,
-            secondaryButtonLabel: .init(text: "Close", color: ShieldCopy.accent)
+            secondaryButtonLabel: .init(text: onBreak ? "Open Accountable" : "Close", color: ShieldCopy.accent)
         )
     }
 }
@@ -82,7 +104,7 @@ enum ShieldCopy {
             return Text(
                 symbol: "hourglass",
                 title: "Taking a breather",
-                subtitle: "You used the time you asked for. You can start again at \(time). See you then."
+                subtitle: "You kept your word. Back at \(time). Coming back before then breaks the promise, and Buddy notices."
             )
         }
         return Text(

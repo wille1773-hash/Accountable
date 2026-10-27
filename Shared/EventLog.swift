@@ -12,6 +12,8 @@ enum EventType: String, Codable {
     case limitReached = "limit_reached"
     case lockoutStarted = "lockout_started"
     case lockoutEnded = "lockout_ended"
+    /// Opened a locked app during a break, which counts as breaking the promise.
+    case brokeDuringBreak = "broke_during_break"
     /// The lock screen was drawn over a selected app. Best effort: see ShieldConfigurationExtension.
     case shieldShown = "shield_shown"
     /// A button on the lock screen was tapped.

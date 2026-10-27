@@ -10,36 +10,16 @@ struct YourTimeView: View {
     @State private var whatIf: Int?
 
     private var profile: Profile { model.state.profile }
-    private var start: LifeMath { LifeMath(dailyMinutes: profile.dailyMinutes, age: profile.age) }
     private var average: Int? { Progress.averageDailyMinutes(model.state) }
     /// Where the user is headed now: their real average once there is one, otherwise their starting number.
     private var nowMinutes: Int { average ?? profile.dailyMinutes }
-    private var now: LifeMath { LifeMath(dailyMinutes: nowMinutes, age: profile.age) }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Eyebrow("Your time")
-                    headline
-
-                    Card(padding: 18) {
-                        let shown = LifeMath(dailyMinutes: whatIf ?? nowMinutes, age: profile.age)
-                        FutureGrid(yearsLeft: start.wholeYearsLeft,
-                                   socialYears: shown.yearsAhead,
-                                   wonBackYears: max(0, start.yearsAhead - shown.yearsAhead),
-                                   revealed: start.wholeYearsLeft)
-                        HStack(spacing: 14) {
-                            legend(fill: Theme.accent, "Social media")
-                            legend(fill: Theme.accentSoft, stroke: Theme.accent, "Won back")
-                            legend(stroke: Theme.hairline, "Yours")
-                        }
-                        Text("One dot per year you have left. \"Won back\" is compared with where you started, at \(LifeMath.format(minutes: profile.dailyMinutes)) a day.")
-                            .font(.caption)
-                            .foregroundStyle(Theme.secondaryText)
-                    }
-
-                    whatIfCard
+                    hero
 
                     Card(padding: 18) {
                         Eyebrow("This week")
@@ -70,78 +50,21 @@ struct YourTimeView: View {
         .tint(Theme.accent)
     }
 
-    @ViewBuilder
-    private var headline: some View {
-        let back = start.yearsAhead - now.yearsAhead
-        if let average, back > 0.05 {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("+\(LifeMath.format(years: back)) years")
-                    .font(Theme.bigNumber(52))
-                    .foregroundStyle(Theme.accent)
-                Text("back, at this week's pace of \(LifeMath.format(minutes: average)) a day instead of \(LifeMath.format(minutes: profile.dailyMinutes)).")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        } else if let average {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(LifeMath.format(years: now.yearsAhead)) years")
-                    .font(Theme.bigNumber(52))
-                    .foregroundStyle(Theme.ink)
-                Text("on social media at this week's pace of \(LifeMath.format(minutes: average)) a day. Every minute you cut shows up here.")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(LifeMath.format(years: start.yearsAhead)) years")
-                    .font(Theme.bigNumber(52))
-                    .foregroundStyle(Theme.ink)
-                Text("on social media at \(LifeMath.format(minutes: profile.dailyMinutes)) a day, where you started. After your first full day, this tracks your real pace.")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
+    private var hero: some View {
+        LifeProjectionCard(
+            startMinutes: profile.dailyMinutes,
+            age: profile.age,
+            minutes: Binding(get: { whatIf ?? nowMinutes }, set: { whatIf = $0 }),
+            caption: paceLine(value: whatIf ?? nowMinutes)
+        )
     }
 
-    private var whatIfCard: some View {
-        let value = whatIf ?? nowMinutes
-        let target = LifeMath(dailyMinutes: value, age: profile.age)
-        return Card(padding: 18) {
-            Text("What if you kept it to")
-                .foregroundStyle(Theme.secondaryText)
-            Text("\(LifeMath.format(minutes: value)) a day")
-                .font(Theme.title(24))
-                .foregroundStyle(Theme.ink)
-                .contentTransition(.numericText())
-                .animation(.snappy, value: value)
-            Slider(
-                value: Binding(get: { Double(value) }, set: { whatIf = Int($0) }),
-                in: 0...Double(max(15, profile.dailyMinutes)),
-                step: 5
-            )
-            .tint(Theme.accent)
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("+\(LifeMath.format(years: max(0, start.yearsAhead - target.yearsAhead)))")
-                    .font(Theme.bigNumber(30))
-                    .foregroundStyle(Theme.accent)
-                    .contentTransition(.numericText())
-                    .animation(.snappy, value: value)
-                Text("years back vs. where you started")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink)
-            }
+    private func paceLine(value: Int) -> String {
+        if let average {
+            let tail = value == average ? "That's where you are now." : "Drag back to \(LifeMath.format(minutes: average)) to see where you are now."
+            return "This week you're averaging \(LifeMath.format(minutes: average)) a day. \(tail)"
         }
-        .sensoryFeedback(.selection, trigger: value)
-    }
-
-    private func legend(fill: Color = .clear, stroke: Color = .clear, _ label: String) -> some View {
-        HStack(spacing: 6) {
-            Circle().fill(fill).overlay(Circle().stroke(stroke, lineWidth: 1.5)).frame(width: 11, height: 11)
-            Text(label).font(.caption).foregroundStyle(Theme.secondaryText)
-        }
+        return "Drag to see what cutting back gives you. After your first full day, this starts at your real pace."
     }
 }
 

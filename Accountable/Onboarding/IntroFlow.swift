@@ -25,6 +25,17 @@ struct IntroFlow: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
+            .contentShape(Rectangle())
+            // Swipe between pages as well as using the button.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 30)
+                    .onEnded { drag in
+                        guard abs(drag.translation.width) > abs(drag.translation.height) * 1.5 else { return }
+                        if drag.translation.width < -60 { next() } else if drag.translation.width > 60 { back() }
+                    },
+                // Pages with sliders keep horizontal drags for the slider.
+                including: [.yourNumbers, .yourLife].contains(page) ? .subviews : .all
+            )
             .overlay(alignment: .bottom) {
                 LinearGradient(colors: [Theme.background.opacity(0), Theme.background], startPoint: .top, endPoint: .bottom)
                     .frame(height: 28)
@@ -120,34 +131,60 @@ struct IntroPage<Visual: View>: View {
     var source: String?
     @ViewBuilder var visual: Visual
 
+    @State private var shown = false
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 visual
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 230)
-                    .padding(.top, 24)
-                if let eyebrow { Eyebrow(eyebrow) }
-                Text(title)
-                    .font(Theme.display(32))
-                    .foregroundStyle(Theme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(bodyText)
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.secondaryText)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let source {
-                    Text(source)
-                        .font(.footnote)
-                        .foregroundStyle(Theme.secondaryText.opacity(0.8))
-                        .padding(.top, 4)
+                    .frame(minHeight: 300)
+                    .padding(.top, 16)
+                Group {
+                    if let eyebrow { Eyebrow(eyebrow) }
+                    Text(title)
+                        .font(Theme.display(34))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(bodyText)
+                        .font(.system(size: 18))
+                        .foregroundStyle(Theme.secondaryText)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let source {
+                        Text(source)
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryText.opacity(0.7))
+                    }
                 }
+                // Words follow the picture in, so the eye lands on the visual first.
+                .opacity(shown ? 1 : 0)
+                .offset(y: shown ? 0 : 12)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .onAppear { withAnimation(.easeOut(duration: 0.45).delay(0.35)) { shown = true } }
+    }
+}
+
+/// A number that counts up from zero when it appears.
+struct CountUp: View {
+    var to: Double
+    var format: (Double) -> String
+    var font: Font
+    var delay: Double = 0.2
+    @State private var value = 0.0
+
+    var body: some View {
+        Text(format(value))
+            .font(font)
+            .contentTransition(.numericText(value: value))
+            .task {
+                try? await Task.sleep(for: .seconds(delay))
+                withAnimation(.easeOut(duration: 1.1)) { value = to }
+            }
     }
 }
 
@@ -157,9 +194,14 @@ struct WelcomePage: View {
     var body: some View {
         IntroPage(
             title: "Say how long.\nMean it.",
-            bodyText: "Accountable helps you spend less time on social media. Your apps stay locked until you decide how long you want, and then we hold you to it."
+            bodyText: "Your apps stay locked until you decide how long you want. Then we hold you to it."
         ) {
-            Buddy(mood: .curious, size: 110)
+            VStack(spacing: 18) {
+                Buddy(mood: .happy, size: 140)
+                Text("Tap me")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Theme.secondaryText)
+            }
         }
     }
 }
@@ -171,88 +213,142 @@ struct LonelyPage: View {
         IntroPage(
             eyebrow: "What the research says",
             title: "Less scrolling, less lonely",
-            bodyText: "University of Pennsylvania students who cut social media to about 30 minutes a day felt significantly less lonely and depressed within three weeks. Just keeping track of their use lowered anxiety too.",
+            bodyText: "Students who cut social media to 30 minutes a day felt less lonely and less depressed within three weeks.",
             source: "Hunt et al., Journal of Social and Clinical Psychology, 2018"
         ) {
-            VStack(alignment: .leading, spacing: 22) {
-                bar(label: "A typical day", value: "2 hr 20 min", fraction: 1, color: Theme.muted)
-                bar(label: "In the study", value: "30 min", fraction: 30.0 / 140, color: Theme.accent)
+            VStack(alignment: .leading, spacing: 26) {
+                bar(label: "A typical day", minutes: 140, fraction: 1, color: Theme.muted)
+                bar(label: "In the study", minutes: 30, fraction: 30.0 / 140, color: Theme.accent)
+                HStack(spacing: 10) {
+                    Image(systemName: "arrow.down.right")
+                    Text("Less loneliness and depression in 3 weeks")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+                .opacity(shown ? 1 : 0)
+                .animation(.easeOut(duration: 0.4).delay(1.2), value: shown)
             }
-            .padding(.horizontal, 8)
-            .onAppear { withAnimation(.easeOut(duration: 0.9).delay(0.2)) { shown = true } }
+            .padding(.horizontal, 4)
+            .onAppear { withAnimation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2)) { shown = true } }
         }
     }
 
-    private func bar(label: String, value: String, fraction: Double, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+    private func bar(label: String, minutes: Int, fraction: Double, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(label).font(Theme.label).foregroundStyle(Theme.secondaryText)
                 Spacer()
-                Text(value).font(Theme.title(20)).foregroundStyle(Theme.ink)
+                CountUp(to: Double(minutes), format: { LifeMath.format(minutes: Int($0)) }, font: Theme.bigNumber(30))
+                    .foregroundStyle(Theme.ink)
             }
             GeometryReader { geo in
                 Capsule()
                     .fill(color)
-                    .frame(width: max(14, geo.size.width * (shown ? fraction : 0.02)))
+                    .frame(width: max(18, geo.size.width * (shown ? fraction : 0.02)))
             }
-            .frame(height: 14)
+            .frame(height: 22)
         }
     }
 }
 
 struct HourBackPage: View {
     @State private var progress = 0.0
+    @State private var popped = 0
+
+    private let uses: [(String, String)] = [
+        ("person.2.fill", "Friends"), ("bed.double.fill", "Sleep"),
+        ("figure.walk", "Move"), ("book.fill", "Read"),
+    ]
 
     var body: some View {
         IntroPage(
             eyebrow: "What the research says",
             title: "An hour back, every day",
-            bodyText: "People paid to quit Facebook for four weeks got back about an hour a day. They spent more time offline, including with friends and family, and reported small but real gains in happiness.",
+            bodyText: "People who took four weeks off Facebook got back about an hour a day, spent more of it offline, and felt a little happier.",
             source: "Allcott et al., American Economic Review, 2020"
         ) {
             ZStack {
-                Circle().stroke(Theme.hairline, lineWidth: 14)
+                Circle().stroke(Theme.hairline, lineWidth: 16)
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 16, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                VStack(spacing: 2) {
-                    Text("+1")
-                        .font(Theme.bigNumber(56))
+                VStack(spacing: 0) {
+                    CountUp(to: 60, format: { "+\(Int($0))" }, font: Theme.bigNumber(58), delay: 0.2)
                         .foregroundStyle(Theme.ink)
-                    Text("hour a day")
+                    Text("min a day")
                         .font(Theme.label)
                         .foregroundStyle(Theme.secondaryText)
                 }
+                // What an hour turns into, popping in around the ring.
+                ForEach(Array(uses.enumerated()), id: \.offset) { index, use in
+                    let angle = Double(index) * .pi / 2 - .pi / 4
+                    VStack(spacing: 4) {
+                        Image(systemName: use.0)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 42, height: 42)
+                            .background(Theme.accent, in: Circle())
+                        Text(use.1).font(.caption2.weight(.semibold)).foregroundStyle(Theme.ink)
+                    }
+                    .offset(x: cos(angle) * 142, y: sin(angle) * 142)
+                    .scaleEffect(popped > index ? 1 : 0.2)
+                    .opacity(popped > index ? 1 : 0)
+                }
             }
-            .frame(width: 200, height: 200)
+            .frame(width: 190, height: 190)
+            .padding(.vertical, 62)
             .onAppear { withAnimation(.easeInOut(duration: 1.2).delay(0.2)) { progress = 1 } }
+            .task {
+                try? await Task.sleep(for: .seconds(1.1))
+                for i in 1...uses.count {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { popped = i }
+                    try? await Task.sleep(for: .milliseconds(180))
+                }
+            }
         }
     }
 }
 
+/// Try the core idea: pick a time before you open anything, and Buddy holds you to it.
 struct DecideAheadPage: View {
-    @State private var bubble = false
+    @State private var picked: Int?
 
     var body: some View {
         IntroPage(
-            eyebrow: "What the research says",
-            title: "Deciding ahead works",
-            bodyText: "Across 94 studies, people who decided exactly when and how they'd act followed through much more often than people who only set a goal. That's the idea here: before you open an app, you say how long.",
+            eyebrow: "Try it",
+            title: "Decide first. Then open the app.",
+            bodyText: "Across 94 studies, people who decided exactly how they'd act followed through far more often. So before any app opens, you say how long.",
             source: "Gollwitzer & Sheeran, Advances in Experimental Social Psychology, 2006"
         ) {
-            VStack(spacing: 14) {
-                Text("15 minutes, then I'm done.")
-                    .font(Theme.title(19))
+            VStack(spacing: 18) {
+                Text(picked.map { "\($0) minutes. Deal." } ?? "How long do you want?")
+                    .font(Theme.title(21))
                     .foregroundStyle(Theme.ink)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
-                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .scaleEffect(bubble ? 1 : 0.6, anchor: .bottom)
-                    .opacity(bubble ? 1 : 0)
-                Buddy(mood: .happy, size: 90)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .contentTransition(.opacity)
+                    .id(picked)
+                    .transition(.scale(scale: 0.85, anchor: .bottom).combined(with: .opacity))
+                Buddy(mood: picked == nil ? .curious : .happy, size: 96)
+                HStack(spacing: 10) {
+                    ForEach([5, 10, 15], id: \.self) { minutes in
+                        Button {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) { picked = minutes }
+                        } label: {
+                            Text("\(minutes) min")
+                                .font(.headline)
+                                .foregroundStyle(picked == minutes ? .white : Theme.ink)
+                                .frame(width: 84, height: 48)
+                                .background(picked == minutes ? Theme.accent : Theme.card,
+                                            in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
-            .onAppear { withAnimation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.3)) { bubble = true } }
+            .sensoryFeedback(.success, trigger: picked)
         }
     }
 }
@@ -319,106 +415,39 @@ struct YourNumbersPage: View {
 
 struct YourLifePage: View {
     var math: LifeMath
-    /// The "what if" daily time the user is trying out, in minutes. Starts at their real number,
-    /// so the first thing they see is where they're headed if nothing changes.
-    @State private var goalMinutes: Int
-    @State private var revealed = 0
+    /// Starts at the user's real number, so the first thing they see is where they're headed.
+    @State private var minutes: Int
 
     init(math: LifeMath) {
         self.math = math
-        _goalMinutes = State(initialValue: math.dailyMinutes)
+        _minutes = State(initialValue: math.dailyMinutes)
     }
-
-    private var goal: LifeMath { LifeMath(dailyMinutes: goalMinutes, age: math.age) }
-    private var yearsBack: Double { math.yearsAhead - goal.yearsAhead }
-    private var cuttingBack: Bool { goalMinutes < math.dailyMinutes }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 Eyebrow("The rest of your life")
-                    .padding(.top, 28)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(LifeMath.format(years: math.yearsAhead)) years")
-                        .font(Theme.bigNumber(56))
-                        .foregroundStyle(Theme.ink)
-                    Text("on social media, if you keep spending \(LifeMath.format(minutes: math.dailyMinutes)) a day.")
-                        .font(.system(size: 17))
-                        .foregroundStyle(Theme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Card(padding: 18) {
-                    FutureGrid(yearsLeft: math.wholeYearsLeft,
-                               socialYears: goal.yearsAhead,
-                               wonBackYears: yearsBack,
-                               revealed: revealed)
-                    HStack(spacing: 14) {
-                        legend(fill: Theme.accent, "Social media")
-                        legend(fill: Theme.accentSoft, stroke: Theme.accent, "Won back")
-                        legend(stroke: Theme.hairline, "Yours")
-                    }
-                    Text("One dot per year. At \(math.age), the average person has about \(Int(math.yearsLeft.rounded())) years left.")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondaryText)
-                }
-
-                Card(padding: 18) {
-                    Text(cuttingBack ? "If you cut back to" : "Drag to see what cutting back gives you")
-                        .foregroundStyle(Theme.secondaryText)
-                        .animation(nil, value: cuttingBack)
-                    Text("\(LifeMath.format(minutes: goalMinutes)) a day")
-                        .font(Theme.title(24))
-                        .foregroundStyle(Theme.ink)
-                        .contentTransition(.numericText())
-                        .animation(.snappy, value: goalMinutes)
-                    Slider(
-                        value: Binding(get: { Double(goalMinutes) }, set: { goalMinutes = Int($0) }),
-                        in: 0...Double(max(15, math.dailyMinutes)),
-                        step: 5
-                    )
-                    .tint(Theme.accent)
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("+\(LifeMath.format(years: yearsBack))")
-                            .font(Theme.bigNumber(34))
-                            .foregroundStyle(cuttingBack ? Theme.accent : Theme.secondaryText)
-                            .contentTransition(.numericText())
-                            .animation(.snappy, value: goalMinutes)
-                        Text("years back")
-                            .font(Theme.title(20))
-                            .foregroundStyle(Theme.ink)
-                    }
-                }
-                .sensoryFeedback(.selection, trigger: goalMinutes)
-
+                    .padding(.top, 24)
+                LifeProjectionCard(
+                    startMinutes: math.dailyMinutes,
+                    age: math.age,
+                    minutes: $minutes,
+                    caption: minutes < math.dailyMinutes
+                        ? "That's how much of your life you'd win back."
+                        : "Drag left to see what cutting back gives you."
+                )
                 if math.daysSoFar > 0 {
                     Text("So far you've spent about \(math.daysSoFar.formatted()) days on social media since you were \(LifeMath.startAge).")
                         .foregroundStyle(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Text("How this is worked out: your daily time is \(Int((math.shareOfTime * 100).rounded()))% of every 24 hours, applied to the years the average person your age has left (\(LifeMath.source)). \"So far\" assumes the same time every day since \(LifeMath.startAge).")
+                Text("Your daily time as a share of every 24 hours, applied to the years the average person your age has left (\(LifeMath.source)).")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondaryText.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
-        }
-        .task {
-            // Fill the grid a few dots at a time.
-            for step in 1...max(1, math.wholeYearsLeft) {
-                try? await Task.sleep(for: .milliseconds(18))
-                revealed = step
-            }
-        }
-    }
-
-    private func legend(fill: Color = .clear, stroke: Color = .clear, _ label: String) -> some View {
-        HStack(spacing: 6) {
-            Circle().fill(fill).overlay(Circle().stroke(stroke, lineWidth: 1.5)).frame(width: 11, height: 11)
-            Text(label).font(.caption).foregroundStyle(Theme.secondaryText)
         }
     }
 }
@@ -474,35 +503,48 @@ private struct YearDot: View {
 }
 
 struct HowItWorksPage: View {
+    @State private var shown = 0
+
+    private let steps: [(String, String, String)] = [
+        ("lock.fill", "Pick the apps that pull you in.", "They stay locked by default."),
+        ("timer", "Say how long, every time.", "Right in Accountable, or straight from the lock screen."),
+        ("hourglass", "Time's up? They lock again.", "Using the time you asked for keeps your promise. Then take a short break."),
+        ("heart.fill", "Meet Buddy.", "Keep your word and Buddy thrives. Sneak back in during a break and Buddy gets sad."),
+    ]
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
-                Buddy(mood: .happy, size: 72)
+            VStack(alignment: .leading, spacing: 22) {
+                Buddy(mood: .happy, size: 84)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 28)
-                Text("How Accountable works")
-                    .font(Theme.display(30))
+                    .padding(.top, 24)
+                Text("How it works")
+                    .font(Theme.display(34))
                     .foregroundStyle(Theme.ink)
-                step(1, "Pick the apps that pull you in.", "They stay locked by default.")
-                step(2, "Say how long, every time.", "5 minutes? 20? You choose before you open anything.")
-                step(3, "When time's up, they lock again.", "Run out of time and you take a short break. Unwind has breathing and ideas to help you through it.")
-                step(4, "Meet Buddy.", "Keep your promises and Buddy thrives. Break them and Buddy gets smaller and sadder. Only kept promises bring Buddy back.")
+                ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                    HStack(alignment: .top, spacing: 16) {
+                        Image(systemName: step.0)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 42, height: 42)
+                            .background(Theme.accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(step.1).font(.headline).foregroundStyle(Theme.ink)
+                            Text(step.2).foregroundStyle(Theme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .opacity(shown > index ? 1 : 0)
+                    .offset(x: shown > index ? 0 : 24)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
         }
-    }
-
-    private func step(_ n: Int, _ title: String, _ detail: String) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            Text("\(n)")
-                .font(Theme.title(18))
-                .foregroundStyle(Theme.accent)
-                .frame(width: 34, height: 34)
-                .background(Theme.accentSoft, in: Circle())
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline).foregroundStyle(Theme.ink)
-                Text(detail).foregroundStyle(Theme.secondaryText)
+        .task {
+            for i in 1...steps.count {
+                try? await Task.sleep(for: .milliseconds(i == 1 ? 250 : 220))
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { shown = i }
             }
         }
     }

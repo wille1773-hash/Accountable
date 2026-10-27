@@ -5,7 +5,10 @@ import Foundation
 /// The app's view of the shared state, plus the actions the UI can take.
 @MainActor
 final class AppModel: ObservableObject {
-    @Published private(set) var state = SharedStore.load()
+    @Published private(set) var state: SharedState = {
+        SharedKeychain.clearIfFreshInstall()
+        return SharedStore.load()
+    }()
     @Published private(set) var authorizationStatus = AuthorizationCenter.shared.authorizationStatus
 
     private var cancellables = Set<AnyCancellable>()
