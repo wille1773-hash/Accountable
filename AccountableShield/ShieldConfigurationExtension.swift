@@ -29,6 +29,12 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let onBreak = (state.lockout?.endsAt ?? .distantPast) > now
         let session = state.session.flatMap { $0.windowEnd > now ? $0 : nil }
         let copy = ShieldCopy.make(lockout: state.lockout, session: session, now: now)
+        // Match the app's Light, Dark or Auto setting (see ShieldAppearance).
+        ShieldCopy.style = switch ShieldAppearance.current() {
+        case .light: .light
+        case .dark: .dark
+        case nil: .unspecified
+        }
 
         // Study log: "app opened while locked". iOS may call this more than once per open or reuse
         // an earlier result, so treat these counts as approximate. Just opening the app doesn't
@@ -42,7 +48,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         if session != nil {
             // The session's time is shared: spend some of it here, or not.
             return ShieldConfiguration(
-                backgroundBlurStyle: .systemThickMaterial,
+                backgroundBlurStyle: ShieldCopy.blur,
                 backgroundColor: ShieldCopy.background.withAlphaComponent(0.55),
                 icon: icon,
                 title: title,
@@ -56,7 +62,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         if #available(iOS 26.4, *) {
             // Pick a time right here. The big button is the good choice; the menu is a step away.
             return ShieldConfiguration(
-                backgroundBlurStyle: .systemThickMaterial,
+                backgroundBlurStyle: ShieldCopy.blur,
                 backgroundColor: ShieldCopy.background.withAlphaComponent(0.55),
                 icon: icon,
                 title: title,
@@ -69,7 +75,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         }
 
         return ShieldConfiguration(
-            backgroundBlurStyle: .systemThickMaterial,
+            backgroundBlurStyle: ShieldCopy.blur,
             backgroundColor: ShieldCopy.background.withAlphaComponent(0.55),
             icon: icon,
             title: title,
@@ -89,9 +95,21 @@ enum ShieldCopy {
     static let secondary = dynamic(light: 0x5C6862, dark: 0x9AA69F)
     static let onAccent = dynamic(light: 0xFFFFFF, dark: 0x0E1A13)
 
+    /// Light or dark when the app's setting says so; unspecified follows the phone.
+    static var style: UIUserInterfaceStyle = .unspecified
+
+    static var blur: UIBlurEffect.Style {
+        switch style {
+        case .light: .systemThickMaterialLight
+        case .dark: .systemThickMaterialDark
+        default: .systemThickMaterial
+        }
+    }
+
     private static func dynamic(light: UInt32, dark: UInt32) -> UIColor {
         UIColor { traits in
-            let hex = traits.userInterfaceStyle == .dark ? dark : light
+            let isDark = style == .unspecified ? traits.userInterfaceStyle == .dark : style == .dark
+            let hex = isDark ? dark : light
             return UIColor(
                 red: CGFloat((hex >> 16) & 0xFF) / 255,
                 green: CGFloat((hex >> 8) & 0xFF) / 255,

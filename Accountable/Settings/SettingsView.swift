@@ -260,5 +260,8 @@ enum Appearance: String, CaseIterable, Identifiable {
         for scene in UIApplication.shared.connectedScenes {
             (scene as? UIWindowScene)?.windows.forEach { $0.overrideUserInterfaceStyle = style }
         }
+        // The lock screen over locked apps follows the same choice.
+        guard !DemoMode.isOn else { return }
+        ShieldAppearance.set(self == .light ? .light : self == .dark ? .dark : nil)
     }
 }

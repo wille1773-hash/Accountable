@@ -34,3 +34,30 @@ enum Shielding {
         store.clearAllSettings()
     }
 }
+
+/// The app's Light, Dark or Auto choice, passed to the lock screen. The lock screen extension can't
+/// read Accountable's saved data, but it can read Screen Time settings. So the choice is kept as a
+/// setting that changes nothing, "in-app purchases allowed", in a store named after it. An "allowed"
+/// never overrides a stricter setting from anywhere else, so the phone behaves exactly the same.
+enum ShieldAppearance {
+    enum Choice: String, CaseIterable {
+        case light, dark
+    }
+
+    private static func store(_ choice: Choice) -> ManagedSettingsStore {
+        ManagedSettingsStore(named: .init("appearance.\(choice.rawValue)"))
+    }
+
+    /// Nil means follow the phone.
+    static func set(_ choice: Choice?) {
+        for option in Choice.allCases {
+            let store = store(option)
+            let wanted: Bool? = option == choice ? false : nil
+            if store.appStore.denyInAppPurchases != wanted { store.appStore.denyInAppPurchases = wanted }
+        }
+    }
+
+    static func current() -> Choice? {
+        Choice.allCases.first { store($0).appStore.denyInAppPurchases != nil }
+    }
+}
