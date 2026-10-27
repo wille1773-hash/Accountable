@@ -4,9 +4,9 @@
 <dict>
 	<key>com.apple.developer.family-controls</key>
 	<true/>
-	<key>com.apple.security.application-groups</key>
+	<key>keychain-access-groups</key>
 	<array>
-		<string>group.com.wille1773.accountable</string>
+		<string>$(AppIdentifierPrefix)com.wille1773.accountable.shared</string>
 	</array>
 </dict>
 </plist>

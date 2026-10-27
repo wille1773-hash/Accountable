@@ -3,45 +3,38 @@ import Foundation
 import WidgetKit
 #endif
 
-/// Reads and writes `SharedState` to the App Group.
+/// Reads and writes `SharedState`, shared by the app and its extensions through `SharedKeychain`.
 ///
-/// The app and the extensions run as separate processes and can touch this file at the same
-/// moment (for example, the monitor extension ending a session while the app is open).
-/// `NSFileCoordinator` makes each read-modify-write happen one at a time.
+/// The app and the extensions run as separate processes. Each read-modify-write is short and
+/// happens under a lock within a process; writes from two processes at the same instant (rare:
+/// e.g. the monitor ending a session while the app is open) resolve as last writer wins.
 enum SharedStore {
-    private static var url: URL { AppGroup.fileURL("state.json") }
+    private static let key = "state"
 
     static func load() -> SharedState {
-        var result = SharedState()
-        var coordinationError: NSError?
-        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
-            result = read(readURL)
-        }
-        return result
+        SharedKeychain.lock.lock(); defer { SharedKeychain.lock.unlock() }
+        return read()
     }
 
     /// Applies `change` to the latest saved state and saves it. Returns the new state.
     @discardableResult
     static func update(_ change: (inout SharedState) -> Void) -> SharedState {
-        var result = SharedState()
-        var coordinationError: NSError?
-        NSFileCoordinator().coordinate(writingItemAt: url, options: .forMerging, error: &coordinationError) { writeURL in
-            var state = read(writeURL)
-            change(&state)
-            if let data = try? JSONEncoder().encode(state) {
-                try? data.write(to: writeURL, options: .atomic)
-            }
-            result = state
+        SharedKeychain.lock.lock()
+        var state = read()
+        change(&state)
+        if let data = try? JSONEncoder().encode(state) {
+            SharedKeychain.write(data, for: key)
         }
+        SharedKeychain.lock.unlock()
         #if canImport(WidgetKit)
         // Keep Buddy's widgets in step with the app.
         WidgetCenter.shared.reloadAllTimelines()
         #endif
-        return result
+        return state
     }
 
-    private static func read(_ url: URL) -> SharedState {
-        guard let data = try? Data(contentsOf: url),
+    private static func read() -> SharedState {
+        guard let data = SharedKeychain.read(key),
               let state = try? JSONDecoder().decode(SharedState.self, from: data) else {
             return SharedState()
         }

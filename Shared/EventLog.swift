@@ -34,12 +34,12 @@ struct LoggedEvent: Codable {
     var detail: String?
 }
 
-/// Append-only log stored as one JSON object per line in the App Group.
+/// Append-only log, one JSON object per line, kept in the shared keychain.
 ///
-/// Never call this from inside a `SharedStore.update` closure: both use file coordination,
-/// and nesting them can deadlock.
+/// Never call this from inside a `SharedStore.update` closure: `update` holds the shared lock
+/// while it runs, and logging reads the study settings through `SharedStore`.
 enum EventLog {
-    private static var url: URL { AppGroup.fileURL("events.jsonl") }
+    private static let key = "events"
 
     /// Records an event, but only for a study participant who has given consent.
     /// For everyone else this does nothing: regular users are never logged.
@@ -64,26 +64,18 @@ enum EventLog {
         guard var line = try? encoder.encode(event) else { return }
         line.append(0x0A) // newline
 
-        var coordinationError: NSError?
-        NSFileCoordinator().coordinate(writingItemAt: url, options: .forMerging, error: &coordinationError) { writeURL in
-            if !FileManager.default.fileExists(atPath: writeURL.path) {
-                FileManager.default.createFile(atPath: writeURL.path, contents: nil)
-            }
-            guard let handle = try? FileHandle(forWritingTo: writeURL) else { return }
-            defer { try? handle.close() }
-            _ = try? handle.seekToEnd()
-            try? handle.write(contentsOf: line)
-        }
+        SharedKeychain.lock.lock(); defer { SharedKeychain.lock.unlock() }
+        var log = SharedKeychain.read(key) ?? Data()
+        log.append(line)
+        SharedKeychain.write(log, for: key)
     }
 
     static func all() -> [LoggedEvent] {
-        var events: [LoggedEvent] = []
-        var coordinationError: NSError?
-        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
-            guard let data = try? Data(contentsOf: readURL) else { return }
-            events = data.split(separator: 0x0A).compactMap { try? decoder.decode(LoggedEvent.self, from: Data($0)) }
-        }
-        return events.sorted { $0.timestamp < $1.timestamp }
+        SharedKeychain.lock.lock(); defer { SharedKeychain.lock.unlock() }
+        guard let data = SharedKeychain.read(key) else { return [] }
+        return data.split(separator: 0x0A)
+            .compactMap { try? decoder.decode(LoggedEvent.self, from: Data($0)) }
+            .sorted { $0.timestamp < $1.timestamp }
     }
 
     private static let encoder: JSONEncoder = {
