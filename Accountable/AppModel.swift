@@ -1,6 +1,8 @@
 import Combine
+import DeviceActivity
 import FamilyControls
 import Foundation
+import UserNotifications
 
 /// The app's view of the shared state, plus the actions the UI can take.
 @MainActor
@@ -218,5 +220,22 @@ final class AppModel: ObservableObject {
 
     func updateCooldown(_ settings: CooldownSettings) {
         state = SharedStore.update { $0.cooldown = settings }
+    }
+
+    // MARK: Start over
+
+    /// Puts the app back the way it is right after a download: no locks, no tracking, no data,
+    /// and Screen Time access turned off so the permission step shows again.
+    func startOver() {
+        if !DemoMode.isOn {
+            DeviceActivityCenter().stopMonitoring()
+            Shielding.clearAll()
+            AuthorizationCenter.shared.revokeAuthorization { _ in }
+        }
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        SharedKeychain.removeAll()
+        authorizationMisses = 0
+        state = SharedStore.load()
     }
 }

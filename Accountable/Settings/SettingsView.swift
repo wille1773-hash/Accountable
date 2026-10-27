@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var askingPasscode = false
     @State private var passcode = ""
     @State private var showingResearcher = false
+    @State private var confirmingStartOver = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +35,21 @@ struct SettingsView: View {
                 Section("About") {
                     NavigationLink("Why this works") { ResearchView() }
                     NavigationLink("Privacy") { PrivacyView() }
+                }
+
+                Section {
+                    Button("Start over", role: .destructive) { confirmingStartOver = true }
+                } footer: {
+                    Text("Resets Accountable to how it was right after you downloaded it. Handy for showing someone the app.")
+                }
+                .confirmationDialog("Start over?", isPresented: $confirmingStartOver, titleVisibility: .visible) {
+                    Button("Erase everything and start over", role: .destructive) {
+                        model.startOver()
+                        dismiss()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This unlocks your apps and erases Buddy, your progress, your settings and any study log. Screen Time access is turned off, and the intro starts again.")
                 }
 
                 // Only study participants see this. For everyone else nothing is logged.

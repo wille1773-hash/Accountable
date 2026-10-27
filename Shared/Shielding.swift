@@ -26,4 +26,9 @@ enum Shielding {
         store.shield.webDomains = nil
         store.shield.webDomainCategories = nil
     }
+
+    /// Removes every setting Accountable has applied.
+    static func clearAll() {
+        store.clearAllSettings()
+    }
 }
