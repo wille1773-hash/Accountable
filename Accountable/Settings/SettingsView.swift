@@ -37,13 +37,13 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle("Block Instagram and YouTube websites", isOn: Binding(
+                    Toggle("Block social media websites", isOn: Binding(
                         get: { model.state.blocksSocialSites },
                         set: { model.setBlocksSocialSites($0) }
                     ))
                     .tint(Theme.accent)
                 } footer: {
-                    Text("While your apps are locked, these sites won't load in Safari or inside other apps, like apps that show Instagram without Reels. They open again when you set a time.")
+                    Text("While your apps are locked, social media sites won't load in Safari or inside other apps. They open again when you set a time.")
                 }
 
                 CooldownSection()

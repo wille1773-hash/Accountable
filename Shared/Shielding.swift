@@ -31,9 +31,18 @@ enum Shielding {
 
     /// Sites blocked by `filterSocialSites`. The filter is Apple's web content filter, so it applies
     /// to web pages in every app, not just Safari.
-    static let socialSites = ["instagram.com", "www.instagram.com", "youtube.com", "www.youtube.com", "m.youtube.com"]
+    static let socialSites = [
+        "instagram.com", "www.instagram.com",
+        "youtube.com", "www.youtube.com", "m.youtube.com",
+        "tiktok.com", "www.tiktok.com", "m.tiktok.com",
+        "facebook.com", "www.facebook.com", "m.facebook.com",
+        "x.com", "twitter.com", "mobile.twitter.com",
+        "reddit.com", "www.reddit.com",
+        "snapchat.com", "www.snapchat.com",
+        "threads.net", "www.threads.net", "threads.com", "www.threads.com",
+    ]
 
-    /// Turns the Instagram and YouTube website block on or off.
+    /// Turns the social media website block on or off.
     static func filterSocialSites(_ on: Bool) {
         store.webContent.blockedByFilter = on ? .specific(Set(socialSites.map { WebDomain(domain: $0) })) : nil
     }

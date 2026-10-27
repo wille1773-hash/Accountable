@@ -24,6 +24,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
         SessionEngine.logLockoutEndIfNeeded()
+        if activity.isSitesClock {
+            // The session's minutes are up on the clock: social media websites block again.
+            if SharedStore.load().blocksSocialSites { Shielding.filterSocialSites(true) }
+            return
+        }
         guard let sessionID = activity.sessionID else { return }
         // Restarting monitoring mid-session (the app list changed) may end the old interval early.
         // Only a window that has actually run out ends the session.
