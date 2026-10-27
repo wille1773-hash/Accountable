@@ -90,7 +90,9 @@ final class AppModel: ObservableObject {
     /// Apps are locked whenever there's no session running. Re-applying the lock is harmless,
     /// and it repairs things if a shield was lost (for example after changing the app selection).
     private func reassertLock() {
-        guard !DemoMode.isOn, isAuthorized, state.hasCompletedSetup, state.session == nil else { return }
+        guard !DemoMode.isOn, isAuthorized, state.hasCompletedSetup else { return }
+        Shielding.unhideApps()
+        guard state.session == nil else { return }
         Shielding.lock(state.selection)
         Shielding.filterSocialSites(state.blocksSocialSites)
     }
