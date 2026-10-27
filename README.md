@@ -10,7 +10,7 @@ I watched social media take over my life and my friends' lives. "Five minutes" t
 
 Pick the apps that eat your time. From then on they're locked by default.
 
-When you open one, the lock screen asks how long you want: 5 minutes, 15, or your own number. The app unlocks for exactly that long, then locks again. That's your promise.
+When you open one, the lock screen asks how long you want: 5 minutes, 15, or your own number. That's one timer shared by all your apps, and only time spent in them counts. When it runs out, they lock again. That's your promise.
 
 If you run out of time, you take a break. The first one is 5 minutes, and each one after that on the same day gets longer (10, 30, then 60). You can still unlock during a break, but it counts as a broken promise.
 
