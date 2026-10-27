@@ -19,8 +19,11 @@ struct HowLongSheet: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("How long do you want?")
                         .font(Theme.display(28))
+                        .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(Theme.ink)
-                    Text("Only time in your apps counts.")
+                    Text(model.onBreak
+                         ? "You're on a break. Unlocking now breaks your promise, and Buddy will be sad."
+                         : "Only time in your apps counts.")
                         .foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()
@@ -100,7 +103,7 @@ struct HowLongSheet: View {
     private func start() {
         guard let chosen else { return }
         do {
-            try model.startSession(minutes: chosen)
+            try model.startSession(minutes: chosen, breakingPromise: model.onBreak)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

@@ -74,7 +74,7 @@ enum StudyGroup: String, Codable, CaseIterable, Identifiable {
 struct CooldownSettings: Codable, Equatable {
     var escalating = true
     var flatMinutes = 10
-    var steps = [3, 10, 30, 60]
+    var steps = [5, 10, 30, 60]
 }
 
 /// How Buddy's mood moves. Breaking a promise costs more than keeping one earns, so the only
@@ -135,6 +135,8 @@ struct SharedState: Codable {
     var recentPromises: [PromiseRecord] = []
     /// Bumped when Buddy is tapped on a widget, to make Buddy hop.
     var widgetHops = 0
+    /// Set when someone picks "Custom time…" on the lock screen, so the app opens to the time picker.
+    var wantsCustomTime = false
 
     init() {}
 
@@ -157,6 +159,7 @@ struct SharedState: Codable {
         demoApps = (try? c.decodeIfPresent([String].self, forKey: .demoApps)) ?? []
         recentPromises = (try? c.decodeIfPresent([PromiseRecord].self, forKey: .recentPromises)) ?? []
         widgetHops = (try? c.decodeIfPresent(Int.self, forKey: .widgetHops)) ?? 0
+        wantsCustomTime = (try? c.decodeIfPresent(Bool.self, forKey: .wantsCustomTime)) ?? false
     }
 
     var hasSelection: Bool {

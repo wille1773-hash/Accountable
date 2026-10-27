@@ -83,10 +83,15 @@ enum SessionEngine {
     // MARK: Start
 
     @discardableResult
-    static func start(minutes: Int, now: Date = .now) throws -> ActiveSession {
+    /// Starts a session. During a break this throws `coolingDown`, unless `breakingPromise` is true:
+    /// then the break ends early and the promise before it counts as broken.
+    static func start(minutes: Int, breakingPromise: Bool = false, now: Date = .now) throws -> ActiveSession {
         logLockoutEndIfNeeded(now: now)
+        if let lockout = SharedStore.load().lockout, lockout.endsAt > now {
+            guard breakingPromise else { throw StartError.coolingDown(until: lockout.endsAt) }
+            breakPromise(now: now)
+        }
         let state = SharedStore.load()
-        if let lockout = state.lockout, lockout.endsAt > now { throw StartError.coolingDown(until: lockout.endsAt) }
         if let session = state.session, session.windowEnd > now { throw StartError.alreadyRunning }
         guard state.hasSelection || DemoMode.isOn else { throw StartError.nothingSelected }
 
@@ -217,7 +222,7 @@ enum SessionEngine {
                 state.days[day, default: DayStats()].minutesUsed += session.usedMinutes
             case .limitReached:
                 // Using exactly the time you asked for keeps the promise. It's only broken if you
-                // try to get back in during the break that follows (see recordBreakAttempt).
+                // choose to unlock during the break that follows (see breakPromise).
                 state.days[day, default: DayStats()].limitsHit += 1
                 state.days[day, default: DayStats()].kept += 1
                 state.days[day, default: DayStats()].minutesUsed += session.requestedMinutes
@@ -267,25 +272,25 @@ enum SessionEngine {
         }
     }
 
-    /// Someone opened a locked app during a break: the promise from the session before it is broken.
-    /// Counted once per break, so opening the app three times doesn't cost three promises.
-    static func recordBreakAttempt(now: Date = .now) {
-        // Cheap read first: the lock screen calls this every time it appears.
-        guard let current = SharedStore.load().lockout, current.endsAt > now, current.brokenEarly != true else { return }
-        var recorded = false
+    /// The user chose to unlock during a break: the break ends now and the promise from the
+    /// session before it counts as broken. Buddy feels it.
+    static func breakPromise(now: Date = .now) {
+        var ended: Lockout?
         SharedStore.update { state in
-            guard var lockout = state.lockout, lockout.endsAt > now, lockout.brokenEarly != true else { return }
-            lockout.brokenEarly = true
-            state.lockout = lockout
+            guard let lockout = state.lockout, lockout.endsAt > now else { return }
+            ended = lockout
+            state.lockout = nil
             state.buddyHealth = BuddyHealth.clamp(state.buddyHealth - BuddyHealth.brokenLoss - BuddyHealth.keptGain)
             if let last = state.recentPromises.indices.last, state.recentPromises[last].kept {
                 state.recentPromises[last].kept = false
             } else {
                 state.recentPromises.append(PromiseRecord(kept: false, at: now))
             }
-            recorded = true
         }
-        if recorded { EventLog.append(.brokeDuringBreak) }
+        if let ended {
+            EventLog.append(.brokeDuringBreak, minutes: ended.minutes)
+            EventLog.append(.lockoutEnded, minutes: ended.minutes, detail: "ended_early", at: now)
+        }
     }
 
     /// Nothing runs at the moment a cooldown ends (Apple's schedules can't be that short, and nothing

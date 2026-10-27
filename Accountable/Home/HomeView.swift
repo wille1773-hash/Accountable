@@ -29,6 +29,12 @@ struct HomeView: View {
             }
             .background(Theme.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .onChange(of: model.showTimePicker) { _, show in
+                if show { askingHowLong = true; model.showTimePicker = false }
+            }
+            .onAppear {
+                if model.showTimePicker { askingHowLong = true; model.showTimePicker = false }
+            }
             .sheet(isPresented: $askingHowLong) {
                 HowLongSheet()
                     .presentationDetents([.fraction(0.72), .large])
@@ -51,7 +57,8 @@ struct HomeView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
-                        .background(Theme.accent, in: Capsule())
+                        // Green for a kept promise, dark for a broken one.
+                        .background(toast.hasPrefix("Promise kept") ? Theme.accent : Theme.ink.opacity(0.9), in: Capsule())
                         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
                         .padding(.top, 8)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -60,7 +67,7 @@ struct HomeView: View {
             // A kept promise lifts Buddy's mood: say so, so the recovery is visible.
             .onChange(of: model.state.buddyHealth) { old, new in
                 guard new != old else { return }
-                let message = new > old ? "Promise kept. Buddy perked up." : "Time ran out. Buddy's a bit down."
+                let message = new > old ? "Promise kept. Buddy perked up." : "Promise broken. Buddy's sad."
                 withAnimation(Theme.spring) { toast = message }
                 Task {
                     try? await Task.sleep(for: .seconds(2.5))
@@ -116,7 +123,7 @@ struct StatusHero: View {
                 if let session = model.state.session {
                     SessionStatus(session: session)
                 } else if let lockout = model.state.lockout, lockout.endsAt > context.date {
-                    CooldownStatus(lockout: lockout, now: context.date)
+                    CooldownStatus(lockout: lockout, now: context.date, askingHowLong: $askingHowLong)
                 } else {
                     LockedStatus(askingHowLong: $askingHowLong)
                 }
@@ -216,6 +223,7 @@ private struct CooldownStatus: View {
     @EnvironmentObject private var model: AppModel
     var lockout: Lockout
     var now: Date
+    @Binding var askingHowLong: Bool
 
     var body: some View {
         let remaining = Int(DemoMode.displaySeconds(lockout.endsAt.timeIntervalSince(now)).rounded(.up))
@@ -246,6 +254,9 @@ private struct CooldownStatus: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.secondaryText)
             }
+            Button("Unlock anyway") { askingHowLong = true }
+                .buttonStyle(.quiet)
+                .padding(.top, 2)
         }
     }
 

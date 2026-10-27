@@ -55,6 +55,10 @@ final class AppModel: ObservableObject {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         checkAuthorization()
         reassertLock()
+        if state.wantsCustomTime {
+            state = SharedStore.update { $0.wantsCustomTime = false }
+            showTimePicker = true
+        }
     }
 
     /// Lighter than `refresh()`: just picks up changes from the extensions.
@@ -161,10 +165,16 @@ final class AppModel: ObservableObject {
 
     // MARK: Sessions
 
-    func startSession(minutes: Int) throws {
+    /// True while a break is running.
+    var onBreak: Bool { (state.lockout?.endsAt ?? .distantPast) > .now }
+
+    /// Set when the lock screen's "Custom time…" opened the app; the home screen shows the time picker.
+    @Published var showTimePicker = false
+
+    func startSession(minutes: Int, breakingPromise: Bool = false) throws {
         EventLog.append(.sessionRequested, minutes: minutes)
         do {
-            try SessionEngine.start(minutes: minutes)
+            try SessionEngine.start(minutes: minutes, breakingPromise: breakingPromise)
         } catch {
             EventLog.append(.sessionStartFailed, minutes: minutes, detail: String(describing: error))
             throw error
