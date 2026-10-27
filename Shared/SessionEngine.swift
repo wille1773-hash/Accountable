@@ -86,8 +86,9 @@ enum SessionEngine {
     /// Starts a session. During a break this throws `coolingDown`, unless `breakingPromise` is true:
     /// then the break ends early and the promise before it counts as broken.
     ///
-    /// The time is shared by all the selected apps, but only `opening` (the locked app the user
-    /// started from) unlocks. Opening another app shows its lock screen, which offers the time left.
+    /// The time is shared by all the selected apps, but only `opening` unlocks: everything when
+    /// started in Accountable, just that app when started from its lock screen. Any other app shows
+    /// its lock screen, which offers the time left ("Use it here").
     static func start(minutes: Int, breakingPromise: Bool = false, opening: Opened = Opened(), now: Date = .now) throws -> ActiveSession {
         logLockoutEndIfNeeded(now: now)
         if let lockout = SharedStore.load().lockout, lockout.endsAt > now {
@@ -97,12 +98,6 @@ enum SessionEngine {
         let state = SharedStore.load()
         if let session = state.session, session.windowEnd > now { throw StartError.alreadyRunning }
         guard state.hasSelection || DemoMode.isOn else { throw StartError.nothingSelected }
-
-        // Started in the app after "Custom time…" on a lock screen: open the app it came from.
-        var opening = opening
-        if let pending = state.pendingOpen, let at = state.pendingOpenAt, now.timeIntervalSince(at) < 10 * 60 {
-            opening = opening.union(pending)
-        }
 
         var session = ActiveSession(
             id: UUID(),
@@ -117,7 +112,6 @@ enum SessionEngine {
             session.windowEnd = now.addingTimeInterval(Double(minutes) * DemoMode.minute * 2)
             SharedStore.update { state in
                 state.session = session
-                state.pendingOpen = nil
                 state.days[DayKey.string(for: now), default: DayStats()].made += 1
             }
             EventLog.append(.sessionStarted, minutes: minutes, sessionID: session.id, at: now)
@@ -137,7 +131,6 @@ enum SessionEngine {
 
         SharedStore.update { state in
             state.session = session
-            state.pendingOpen = nil
             state.days[DayKey.string(for: now), default: DayStats()].made += 1
         }
         Shielding.lock(state.selection, except: opening)

@@ -213,7 +213,7 @@ private struct SessionStatus: View {
                     Text("You said \(session.requestedMinutes).")
                         .font(Theme.title(22))
                         .foregroundStyle(Theme.ink)
-                    Text("Shared across your apps. Each one asks before it opens.")
+                    Text("One timer for all your apps.")
                         .font(.subheadline)
                         .foregroundStyle(Theme.secondaryText)
                 }

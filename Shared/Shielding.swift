@@ -17,6 +17,12 @@ enum Shielding {
         let apps = selection.applicationTokens.subtracting(opened.applications)
         let sites = selection.webDomainTokens.subtracting(opened.webDomains)
         let categories = selection.categoryTokens.subtracting(opened.categories)
+        // Clear first: iOS keeps showing a saved lock screen until the shield settings change,
+        // and this makes it ask for the current one (for example "Use it here" during a session).
+        store.shield.applications = nil
+        store.shield.applicationCategories = nil
+        store.shield.webDomains = nil
+        store.shield.webDomainCategories = nil
         store.shield.applications = apps.isEmpty ? nil : apps
         store.shield.applicationCategories = categories.isEmpty ? nil : .specific(categories, except: opened.applications)
         store.shield.webDomains = sites.isEmpty ? nil : sites

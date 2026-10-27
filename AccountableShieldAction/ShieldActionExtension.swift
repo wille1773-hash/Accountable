@@ -51,11 +51,7 @@ class ShieldActionExtension: ShieldActionDelegate {
                 }
             case .custom:
                 EventLog.append(.shieldButtonTapped, detail: "custom,\(context)")
-                SharedStore.update { state in
-                    state.wantsCustomTime = true
-                    state.pendingOpen = opening
-                    state.pendingOpenAt = .now
-                }
+                SharedStore.update { $0.wantsCustomTime = true }
                 return openAccountable(note: "Tap here to pick your time.")
             }
         }

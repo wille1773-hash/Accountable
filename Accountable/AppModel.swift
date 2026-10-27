@@ -174,7 +174,8 @@ final class AppModel: ObservableObject {
     func startSession(minutes: Int, breakingPromise: Bool = false) throws {
         EventLog.append(.sessionRequested, minutes: minutes)
         do {
-            try SessionEngine.start(minutes: minutes, breakingPromise: breakingPromise)
+            // Set in Accountable: every app opens on this one timer.
+            try SessionEngine.start(minutes: minutes, breakingPromise: breakingPromise, opening: .all(state.selection))
         } catch {
             EventLog.append(.sessionStartFailed, minutes: minutes, detail: String(describing: error))
             throw error

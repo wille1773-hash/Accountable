@@ -23,6 +23,11 @@ struct Opened: Codable, Equatable {
     var webDomains: Set<WebDomainToken> = []
     var categories: Set<ActivityCategoryToken> = []
 
+    /// Everything the user picked.
+    static func all(_ selection: FamilyActivitySelection) -> Opened {
+        Opened(applications: selection.applicationTokens, webDomains: selection.webDomainTokens, categories: selection.categoryTokens)
+    }
+
     func union(_ other: Opened) -> Opened {
         Opened(
             applications: applications.union(other.applications),
@@ -157,9 +162,6 @@ struct SharedState: Codable {
     var widgetHops = 0
     /// Set when someone picks "Custom time…" on the lock screen, so the app opens to the time picker.
     var wantsCustomTime = false
-    /// The locked app that "Custom time…" was picked from, so it opens when the session starts.
-    var pendingOpen: Opened?
-    var pendingOpenAt: Date?
 
     init() {}
 
@@ -183,8 +185,6 @@ struct SharedState: Codable {
         recentPromises = (try? c.decodeIfPresent([PromiseRecord].self, forKey: .recentPromises)) ?? []
         widgetHops = (try? c.decodeIfPresent(Int.self, forKey: .widgetHops)) ?? 0
         wantsCustomTime = (try? c.decodeIfPresent(Bool.self, forKey: .wantsCustomTime)) ?? false
-        pendingOpen = try? c.decodeIfPresent(Opened.self, forKey: .pendingOpen)
-        pendingOpenAt = try? c.decodeIfPresent(Date.self, forKey: .pendingOpenAt)
     }
 
     var hasSelection: Bool {
