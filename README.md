@@ -2,38 +2,51 @@
 
 <img src="Accountable/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="96" alt="Accountable icon" align="right">
 
-**A fun, interactive way to take your time back from social media.**
+**An iPhone app that holds you to the social media limits you set for yourself.**
 
-I watched social media take over my life and my friends' lives. "Five minutes" turned into hours, and screen time limits were too easy to ignore. I wanted something that holds me to my word without lecturing me, so I built Accountable.
+I watched social media take over my life and my friends' lives. "Five minutes" turned into an hour, and Screen Time limits were one tap from being ignored. I didn't want another app that lectures you or blocks everything. I wanted one that makes you decide how long you're going to scroll before you start, and then holds you to it. So I built Accountable.
 
 ## How it works
 
-- **Say how long.** Your chosen apps stay locked until you open Accountable and pick a time: 5, 10, 15, 30 minutes, or your own.
-- **Keep your word.** The apps unlock for exactly that long, then lock again. Run out of time and you take a short break, which gets longer each time you run out that day.
-- **Meet Buddy.** A little green robot whose mood follows your promises. Keep them and he thrives; break them and he shrinks and droops. Only kept promises cheer him back up.
-- **See your progress.** Promises kept in a row, your recent promises, minutes per day, and how many years of your life you're winning back.
-- **Unwind.** Guided breathing, grounding, and ideas for something better to do when you feel the pull.
-- **Widgets.** Buddy hops around your Home Screen and shows how you're doing.
+Pick the apps that eat your time. From then on they're locked by default.
+
+When you open one, the lock screen asks how long you want: 5 minutes, 15, or your own number. The app unlocks for exactly that long, then locks again. That's your promise.
+
+If you run out of time, you take a break. The first one is 5 minutes, and each one after that on the same day gets longer (10, 30, then 60). You can still unlock during a break, but it counts as a broken promise.
+
+**Buddy** is a small green robot whose mood follows your promises. Keep them and he hops around happily. Break them and he shrinks and droops. Stopping on time never hurts him, and only kept promises cheer him back up.
+
+There's more:
+
+- **Your time.** Shows how many years of your life your current habit adds up to, and how many you'd win back by cutting down. It's based on CDC life expectancy tables.
+- **Unwind.** Breathing exercises, a grounding exercise and better ideas for when you feel the pull.
+- **Progress.** Kept promises in a row, your recent promises and minutes per day. A bad day doesn't erase your progress.
+- **Widgets.** Buddy hops and blinks on your Home Screen.
 
 ![Buddy widgets](design/widgets.png)
 
-## Why it works
+## The research behind it
 
-- Limiting social media to ~30 min/day reduced loneliness and depression in 3 weeks. *(Hunt et al., 2018)*
-- A 4-week Facebook break freed up ~60 min/day and improved well-being. *(Allcott et al., 2020)*
-- Deciding in advance how you'll act strongly improves follow-through. *(Gollwitzer & Sheeran, 2006)*
+- Cutting social media to about 30 minutes a day reduced loneliness and depression within 3 weeks. *(Hunt et al., 2018)*
+- In a large randomized experiment, a 4-week Facebook break freed up about an hour a day and improved well-being. *(Allcott et al., 2020)*
+- Deciding in advance how you'll act makes you much more likely to follow through. *(Gollwitzer & Sheeran, 2006)*
+- Five minutes a day of cyclic sighing, the first exercise in Unwind, lifted mood more than mindfulness meditation. *(Balban et al., 2023)*
 
 ## Privacy
 
-Everything stays on your phone. No accounts, servers, or analytics. Apple's Screen Time never shares app names or what you do inside them.
+Everything stays on your phone. There are no accounts, servers or analytics. Apple's Screen Time never tells the app which apps you picked or what you do in them.
 
-A hidden study mode, used for a separate University of Florida study, keeps a local log only for participants who give consent.
+The app has a hidden study mode for a separate University of Florida study. It logs anything only for participants who agree to it, and the log stays on their phone.
 
-## Running it
+## Try it
 
-Open `Accountable.xcodeproj` in Xcode 26.3+ and press Run on a Simulator to try the demo. Locking apps needs a real iPhone (iOS 17+) and a paid Apple Developer account. See [docs/TESTING.md](docs/TESTING.md).
+**Simulator demo.** Clone the repo, open `Accountable.xcodeproj` in Xcode 26.3 or later and run it on an iPhone Simulator. Screen Time doesn't work in the Simulator, so it runs a demo with pretend apps and a sped-up clock.
 
-Built with Swift and SwiftUI using FamilyControls, ManagedSettings, DeviceActivity and WidgetKit. No third-party packages.
+**On an iPhone.** Locking apps needs a real iPhone on iOS 17 or later (26.4+ for the lock screen's time menu) and a paid Apple Developer account. Set your own team and bundle IDs, then follow [docs/TESTING.md](docs/TESTING.md).
+
+The app is in testing now. TestFlight and the App Store come next.
+
+Built with Swift and SwiftUI using FamilyControls, ManagedSettings, DeviceActivity and WidgetKit. It uses no third-party packages.
 
 ## Author
 

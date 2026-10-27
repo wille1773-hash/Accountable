@@ -1,12 +1,18 @@
+import CryptoKit
 import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
 
-    /// Researcher passcode. It lives in the app's code, so it only keeps participants from
-    /// switching groups by accident or curiosity. Don't reuse a real password here.
-    private static let researcherPasscode = "gatorstudy"
+    /// SHA-256 of the researcher passcode, so the passcode itself isn't in the public repo.
+    /// It only keeps participants from switching groups by accident or curiosity.
+    /// Don't reuse a real password here.
+    private static let researcherPasscodeHash = "5e34b89bbe60ebd0189cfc4d912ec1fbbb9d137c3a7129732e7c6ea0ee25b379"
+
+    private static func isResearcherPasscode(_ text: String) -> Bool {
+        SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined() == researcherPasscodeHash
+    }
 
     @State private var askingPasscode = false
     @State private var passcode = ""
@@ -91,7 +97,7 @@ struct SettingsView: View {
                 SecureField("Passcode", text: $passcode)
                 Button("Cancel", role: .cancel) {}
                 Button("Open") {
-                    if passcode == Self.researcherPasscode { showingResearcher = true }
+                    if Self.isResearcherPasscode(passcode) { showingResearcher = true }
                 }
             }
             .navigationTitle("Settings")

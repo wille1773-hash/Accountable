@@ -5,7 +5,7 @@ Screen Time APIs don't work in the Simulator. Everything here is on a physical i
 ## One-time setup
 
 1. Open `Accountable.xcodeproj`.
-2. For each of the four targets (Accountable, AccountableMonitor, AccountableShield, AccountableShieldAction): **Signing & Capabilities** → check **Automatically manage signing** → choose your **Team**. Family Controls and the App Group are already in the project; Xcode registers them with Apple when you pick the team.
+2. Select the project, then **Build Settings** → **Development Team** and choose your team (it's set once for all five targets). Family Controls and the shared keychain group are already in the project; Xcode registers them with Apple on the first build. You'll also need to change the bundle IDs (`com.wille1773.Accountable…`) to your own.
 3. Plug in your iPhone, tap **Trust**, turn on **Settings → Privacy & Security → Developer Mode**, and restart the phone.
 4. Pick your iPhone at the top of Xcode and press **Run** (▶).
 
@@ -23,8 +23,9 @@ Tip: to see what the extensions are doing, open **Console.app** on your Mac, sel
 
 ### 2. Default shielding and shield screen
 - [ ] Open a selected app from the home screen: the Accountable lock screen appears ("This one's locked").
-- [ ] **Open Accountable**: on iOS 26.5+ it opens Accountable; on older iOS you get a notification that opens it.
-- [ ] **Close** returns to the home screen.
+- [ ] On iOS 26.4+, **Unlock for…** offers 5 minutes, 15 minutes and Custom time. Picking a time unlocks the app right away; **Custom time…** opens Accountable's time picker.
+- [ ] **Not now** returns to the home screen.
+- [ ] During a break the buttons read **Keep my promise** and **Unlock anyway…**. Unlocking anyway works, but Buddy gets sad and the promise counts as broken.
 - [ ] Apps you didn't select still open normally.
 
 ### 3. "How long?" sessions
