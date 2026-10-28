@@ -271,13 +271,19 @@ enum SessionEngine {
                     state.keptStreak = Progress.keptInARow(state) + 1
                     state.recentPromises.append(PromiseRecord(kept: true, at: now))
                 }
-                // Escalation counts limit hits on the calendar day the limit was hit,
-                // so it resets at midnight even if the session started yesterday.
-                state.limitHitsByDay[DayKey.string(for: now), default: 0] += 1
-                let hitsToday = state.limitHitsByDay[DayKey.string(for: now)] ?? 1
-                let minutes = CooldownPolicy.minutes(forHitNumber: hitsToday, state: state)
-                state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * DemoMode.minute), minutes: minutes)
-            case .windowEnded, .userEnded:
+                startBreak(&state, now: now)
+            case .userEnded:
+                // Stopping early keeps the promise too, and gets the same break, so ending a
+                // timer can't be used to skip one.
+                state.days[day, default: DayStats()].kept += 1
+                state.days[day, default: DayStats()].minutesUsed += session.usedMinutes
+                if counts {
+                    state.buddyHealth = BuddyHealth.clamp(state.buddyHealth + BuddyHealth.keptGain)
+                    state.keptStreak = Progress.keptInARow(state) + 1
+                    state.recentPromises.append(PromiseRecord(kept: true, at: now))
+                }
+                startBreak(&state, now: now)
+            case .windowEnded:
                 state.days[day, default: DayStats()].kept += 1
                 state.days[day, default: DayStats()].minutesUsed += session.usedMinutes
                 if counts {
@@ -302,6 +308,9 @@ enum SessionEngine {
             }
         case .windowEnded, .userEnded, .monitoringLost, .authorizationLost:
             EventLog.append(.sessionEnded, minutes: session.usedMinutes, sessionID: session.id, detail: reason.logDetail, at: now)
+            if reason == .userEnded, let lockout = state.lockout {
+                EventLog.append(.lockoutStarted, minutes: lockout.minutes, sessionID: session.id, at: lockout.startedAt)
+            }
         }
 
         if reason == .limitReached, let lockout = state.lockout {
@@ -312,6 +321,15 @@ enum SessionEngine {
                 body: "That's the \(session.requestedMinutes) minutes you asked for. Promise kept. You can start another session at \(time)."
             )
         }
+    }
+
+    /// Starts the break after a timer, longer with each one that day. Breaks are counted on the
+    /// calendar day they start, so escalation resets at midnight even if the timer began yesterday.
+    private static func startBreak(_ state: inout SharedState, now: Date) {
+        state.limitHitsByDay[DayKey.string(for: now), default: 0] += 1
+        let breaksToday = state.limitHitsByDay[DayKey.string(for: now)] ?? 1
+        let minutes = CooldownPolicy.minutes(forHitNumber: breaksToday, state: state)
+        state.lockout = Lockout(startedAt: now, endsAt: now.addingTimeInterval(Double(minutes) * DemoMode.minute), minutes: minutes)
     }
 
     /// The user chose to unlock during a break: the break ends now and the promise from the

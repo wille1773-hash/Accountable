@@ -196,7 +196,7 @@ struct CooldownSection: View {
             Text("Breaks")
         } footer: {
             if model.state.study.group == .none {
-                Text("After you use up a session, you wait this long before starting another. Counts reset at midnight.")
+                Text("After each timer, whether it runs out or you stop early, you wait this long before starting another. Counts reset at midnight.")
             }
         }
     }

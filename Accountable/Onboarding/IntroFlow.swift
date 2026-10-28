@@ -524,7 +524,7 @@ struct HowItWorksPage: View {
     private let steps: [(String, String, String)] = [
         ("lock.fill", "Pick the apps that pull you in.", "They stay locked by default."),
         ("timer", "Say how long, every time.", "Right in Accountable, or straight from the lock screen."),
-        ("hourglass", "Time's up? They lock again.", "Using the time you asked for keeps your promise. Then take a short break."),
+        ("hourglass", "Time's up? They lock again.", "Stopping at or before your time keeps your promise. Then take a short break."),
         ("heart.fill", "Meet Buddy.", "Keep your word and Buddy thrives. Sneak back in during a break and Buddy gets sad."),
     ]
 

@@ -12,7 +12,7 @@ Pick the apps that eat your time. From then on they're locked by default.
 
 When you open one, the lock screen asks how long you want: 5 minutes, 15, or your own number. That's one timer shared by all your apps, and only time spent in them counts. When it runs out, they lock again. That's your promise.
 
-If you run out of time, you take a break. The first one is 5 minutes, and each one after that on the same day gets longer (10, 30, then 60). You can still unlock during a break, but it counts as a broken promise.
+After each timer, whether it runs out or you stop early, you take a break. The first one is 5 minutes, and each one after that on the same day gets longer (10, 30, then 60). You can still unlock during a break, but it counts as a broken promise.
 
 **Buddy** is a small green robot whose mood follows your promises. Keep them and he hops around happily. Break them and he shrinks and droops. Stopping on time never hurts him, and only kept promises cheer him back up.
 

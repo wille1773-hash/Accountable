@@ -249,13 +249,13 @@ private struct CooldownStatus: View {
                 let health = model.state.buddyHealth
                 Buddy(mood: health <= 5 ? .sad : .sleepy, size: 64, health: health)
             }
-            Text("That was the time you asked for. Back at \(backAt.formatted(date: .omitted, time: .shortened)).")
+            Text("Promise kept. Back at \(backAt.formatted(date: .omitted, time: .shortened)).")
                 .foregroundStyle(Theme.secondaryText)
             Text(BuddyStatus(health: model.state.buddyHealth).line)
                 .font(.footnote)
                 .foregroundStyle(Theme.secondaryText)
             if CooldownPolicy.isEscalating(model.state) {
-                Text("Run out again today and the next break is \(CooldownPolicy.nextMinutes(state: model.state, now: now)) min.")
+                Text("Your next break today will be \(CooldownPolicy.nextMinutes(state: model.state, now: now)) min.")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondaryText)
             }
